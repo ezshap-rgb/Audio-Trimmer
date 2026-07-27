@@ -9,19 +9,40 @@
     body { background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
     .card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 30px; width: 100%; max-width: 520px; }
     h2 { margin-top: 0; color: #1a1a1a; font-size: 1.5rem; text-align: center; }
-    
+
     .upload-box { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: 0.2s; }
     .upload-box:hover { border-color: #3b82f6; background: #f8fafc; }
     input[type="file"] { display: none; }
-    
+
     .controls { display: none; margin-top: 20px; }
-    .time-display { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 15px; }
-    
+    .time-display { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 12px; }
+
+    /* File meta line (channels, sample rate, length) */
+    .file-meta { font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 10px; letter-spacing: 0.02em; }
+
+    /* Direct numeric start/end entry */
+    .trim-inputs { display: flex; gap: 10px; margin-bottom: 15px; }
+    .trim-inputs label { flex: 1; font-size: 0.75rem; color: #475569; font-weight: 600; display: block; }
+    .trim-inputs input { width: 100%; padding: 6px 8px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; }
+    .trim-inputs input:focus { outline: none; border-color: #3b82f6; }
+
     /* Interactive Workspace Container */
-    .timeline-container { position: relative; height: 75px; margin-bottom: 20px; user-select: none; }
-    .slider-track { position: absolute; height: 8px; width: 100%; background: #e2e8f0; border-radius: 4px; top: 12px; }
-    .slider-highlight { position: absolute; height: 8px; background: #3b82f6; border-radius: 4px; top: 12px; pointer-events: none; }
-    
+    .timeline-container { position: relative; height: 90px; margin-bottom: 12px; user-select: none; }
+
+    /* Waveform canvas sits at the bottom of the z-stack, under the track elements */
+    #waveformCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .slider-track { position: absolute; height: 8px; width: 100%; background: #e2e8f0; border-radius: 4px; top: 12px; z-index: 2; }
+    .slider-highlight { position: absolute; height: 8px; background: #3b82f6; border-radius: 4px; top: 12px; pointer-events: none; z-index: 3; }
+
     /* Extended Vertical Red Marker Line */
     .playhead-line {
       position: absolute;
@@ -33,6 +54,7 @@
       pointer-events: none;
       z-index: 25;
       box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+      transform: translateX(-1px); /* Center the 2px line on its anchor point so it aligns with the handle */
     }
 
     /* Red Drag Handle at the Bottom */
@@ -65,26 +87,71 @@
       background: none;
       z-index: 20;
     }
+    /* Native range-input thumbs are intentionally hidden — we draw our own thin-line + knob handles on top.
+       The inputs themselves stay in the DOM so arrow-key navigation still works for accessibility. */
     input[type="range"]::-webkit-slider-thumb {
-      pointer-events: auto;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #1d4ed8;
-      border: 2px solid white;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      cursor: pointer;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
       -webkit-appearance: none;
     }
     input[type="range"]::-moz-range-thumb {
+      pointer-events: none;
+      width: 0;
+      height: 0;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    /* Custom trim handles: thin vertical line extending downward, with a round grab knob on top. */
+    .trim-handle {
+      position: absolute;
+      width: 18px;          /* Wider than the visual line so it's easier to grab */
+      height: 100%;
+      bottom: 0;
+      cursor: ew-resize;
+      z-index: 30;          /* Above playhead-line (25), below playhead-handle (40) */
+      touch-action: none;
+      user-select: none;
       pointer-events: auto;
-      width: 20px;
-      height: 20px;
+      transform: translateX(-50%);
+    }
+    .trim-handle .trim-line {
+      position: absolute;
+      top: 14px;            /* Just below the knob */
+      bottom: 0;
+      left: 50%;
+      width: 2px;
+      background: #1d4ed8;
+      border-radius: 1px;
+      transform: translateX(-50%);
+      box-shadow: 0 0 4px rgba(29, 78, 216, 0.35);
+      pointer-events: none;
+    }
+    .trim-handle .trim-knob {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       background: #1d4ed8;
       border: 2px solid white;
       box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      cursor: pointer;
+      transform: translateX(-50%);
+      transition: transform 0.12s ease, background 0.12s ease;
+      pointer-events: none;
+    }
+    .trim-handle:hover .trim-knob {
+      background: #2563eb;
+      transform: translateX(-50%) scale(1.15);
+    }
+    .trim-handle:active .trim-knob {
+      background: #1e40af;
     }
 
     .button-group { display: flex; gap: 8px; margin-top: 15px; }
@@ -97,8 +164,11 @@
     .btn-stop:hover { background: #fca5a5; }
     .btn-export { background: #2563eb; color: white; width: 100%; margin-top: 10px; padding: 12px; }
     .btn-export:hover { background: #1d4ed8; }
-    
+    .btn-reset { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; padding: 8px 12px; margin-top: 8px; font-size: 0.75rem; flex: none; }
+    .btn-reset:hover { background: #e2e8f0; color: #334155; }
+
     .status { text-align: center; font-size: 0.85rem; color: #64748b; margin-top: 15px; min-height: 1.2em; }
+    .status.error { color: #dc2626; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -106,9 +176,9 @@
 <div class="card">
   <h2>Audio Trimmer</h2>
 
-  <!-- File Upload Area -->
+  <!-- File Upload Area (click only - no drag-and-drop) -->
   <div class="upload-box" onclick="document.getElementById('audioInput').click()">
-    <span id="uploadLabel">📁 Choose or Drop Audio File</span>
+    <span id="uploadLabel">📁 Choose Audio File</span>
     <input type="file" id="audioInput" accept="audio/*">
   </div>
 
@@ -117,6 +187,8 @@
 
   <!-- Trimming Controls -->
   <div class="controls" id="controls">
+    <div class="file-meta" id="fileMeta"></div>
+
     <div class="time-display">
       <span>Start: <strong id="startVal">0.0s</strong></span>
       <span>Playhead: <strong id="currentVal" style="color:#ef4444;">0.0s</strong></span>
@@ -125,17 +197,33 @@
 
     <!-- Timeline Workspace -->
     <div class="timeline-container" id="timelineContainer">
+      <canvas id="waveformCanvas"></canvas>
       <div class="slider-track"></div>
       <div class="slider-highlight" id="sliderHighlight"></div>
-      
+
       <!-- Vertical Red Line -->
       <div class="playhead-line" id="playheadLine"></div>
-      
-      <!-- Bottom Red Drag Handle -->
-      <div class="playhead-handle" id="playheadHandle" title="Drag to scrub audio"></div>
 
-      <input type="range" id="startSlider" min="0" step="0.1" value="0">
-      <input type="range" id="endSlider" min="0" step="0.1" value="0">
+      <!-- Bottom Red Drag Handle -->
+      <div class="playhead-handle" id="playheadHandle" title="Drag to scrub audio" role="slider" aria-label="Audio playhead"></div>
+
+      <input type="range" id="startSlider" min="0" step="0.1" value="0" aria-label="Trim start">
+      <input type="range" id="endSlider" min="0" step="0.1" value="0" aria-label="Trim end">
+
+      <!-- Custom thin-line + round-knob trim handles (the wide round thumbs of the inputs above are hidden) -->
+      <div class="trim-handle" id="startHandle" title="Trim start — drag to adjust">
+        <div class="trim-line"></div>
+        <div class="trim-knob"></div>
+      </div>
+      <div class="trim-handle" id="endHandle" title="Trim end — drag to adjust">
+        <div class="trim-line"></div>
+        <div class="trim-knob"></div>
+      </div>
+    </div>
+
+    <div class="trim-inputs">
+      <label>Start (s)<input type="number" id="startInput" min="0" step="0.1" value="0"></label>
+      <label>End (s)<input type="number" id="endInput" min="0" step="0.1" value="0"></label>
     </div>
 
     <div class="button-group">
@@ -147,8 +235,9 @@
       <button class="btn-preview" id="previewBtn">▶ Play From Playhead</button>
       <button class="btn-stop" id="stopBtn">⏹ Stop</button>
     </div>
-    
+
     <button class="btn-export" id="exportBtn">⬇ Export Cut Segment</button>
+    <button class="btn-reset" id="resetBtn">↻ Load Different File</button>
   </div>
 
   <div class="status" id="status"></div>
@@ -158,6 +247,13 @@
   let audioCtx = null;
   let audioBuffer = null;
   let isDraggingPlayhead = false;
+  // Only true when playback started inside the trim range; controls auto-pause at end.
+  let isPreviewingTrim = false;
+  // Tracked so we can revoke the previous blob URL each time a new file is loaded.
+  let currentFileUrl = null;
+  // Cached peaks so colour updates on slider drag don't recompute the whole waveform.
+  let waveformPeaks = null;
+  let waveformCachedWidth = 0;
 
   const audioPlayer = document.getElementById('audioPlayer');
   const audioInput = document.getElementById('audioInput');
@@ -169,75 +265,182 @@
   const sliderHighlight = document.getElementById('sliderHighlight');
   const playheadLine = document.getElementById('playheadLine');
   const playheadHandle = document.getElementById('playheadHandle');
+  const waveformCanvas = document.getElementById('waveformCanvas');
+  const waveformCtx = waveformCanvas.getContext('2d');
   const startVal = document.getElementById('startVal');
   const currentVal = document.getElementById('currentVal');
   const endVal = document.getElementById('endVal');
+  const startInput = document.getElementById('startInput');
+  const endInput = document.getElementById('endInput');
+  const fileMeta = document.getElementById('fileMeta');
   const setStartBtn = document.getElementById('setStartBtn');
   const setEndBtn = document.getElementById('setEndBtn');
   const previewBtn = document.getElementById('previewBtn');
   const stopBtn = document.getElementById('stopBtn');
   const exportBtn = document.getElementById('exportBtn');
+  const resetBtn = document.getElementById('resetBtn');
   const status = document.getElementById('status');
+  const startHandle = document.getElementById('startHandle');
+  const endHandle = document.getElementById('endHandle');
+
+  const MIN_GAP = 0.1; // Minimum spacing between start and end thumbs
+
+  function setStatus(msg, isError = false) {
+    status.innerText = msg;
+    status.classList.toggle('error', !!isError);
+  }
+
+  function clearFileState() {
+    audioBuffer = null;
+    waveformPeaks = null;
+    isPreviewingTrim = false;
+    if (currentFileUrl) {
+      URL.revokeObjectURL(currentFileUrl);
+      currentFileUrl = null;
+    }
+    audioPlayer.removeAttribute('src');
+    audioPlayer.load();
+    audioInput.value = '';
+    uploadLabel.innerText = '📁 Choose Audio File';
+    fileMeta.innerText = '';
+    controls.style.display = 'none';
+    waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+    setStatus('');
+  }
 
   // Handle File Upload
   audioInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    uploadLabel.innerText = `📄 ${file.name}`;
-    status.innerText = "Loading audio...";
+    setStatus("Loading audio...");
 
-    const fileUrl = URL.createObjectURL(file);
-    audioPlayer.src = fileUrl;
-
-    const arrayBuffer = await file.arrayBuffer();
-    if (!audioCtx) {
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Revoke any previous blob URL before creating a new one so we don't leak them.
+    if (currentFileUrl) {
+      URL.revokeObjectURL(currentFileUrl);
+      currentFileUrl = null;
     }
-    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    currentFileUrl = URL.createObjectURL(file);
+    audioPlayer.src = currentFileUrl;
+
+    let arrayBuffer;
+    try {
+      arrayBuffer = await file.arrayBuffer();
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    } catch (err) {
+      console.warn('Audio decode failed:', err);
+      // Reset the file UI so the user can try again with the same/different file.
+      clearFileState();
+      setStatus("Could not decode audio file. Unsupported or corrupt format.", true);
+      return;
+    }
 
     const duration = audioBuffer.duration;
     startSlider.max = duration;
     endSlider.max = duration;
     startSlider.value = 0;
     endSlider.value = duration;
+    startInput.max = duration;
+    endInput.max = duration;
+    startInput.value = "0.0";
+    endInput.value = duration.toFixed(1);
+
+    uploadLabel.innerText = `📄 ${file.name}`;
+    const chans = audioBuffer.numberOfChannels === 2 ? 'Stereo' : (audioBuffer.numberOfChannels === 1 ? 'Mono' : `${audioBuffer.numberOfChannels}ch`);
+    fileMeta.innerText = `${chans} · ${(audioBuffer.sampleRate / 1000).toFixed(1)} kHz · 16-bit · ${duration.toFixed(1)}s`;
 
     updateSliderTrack();
     setPlayheadTime(0);
 
     controls.style.display = 'block';
-    status.innerText = `Loaded. Duration: ${duration.toFixed(1)}s`;
+    setStatus(`Loaded: ${file.name}`);
+
+    // Defer the peak computation so the UI repaints the controls first.
+    setTimeout(() => {
+      if (audioBuffer) {
+        computeWaveformPeaks();
+        drawWaveform();
+      }
+    }, 0);
   });
 
-  // Slider change handlers
+  // --- Slider change handlers ---
   startSlider.addEventListener('input', () => {
-    if (parseFloat(startSlider.value) >= parseFloat(endSlider.value)) {
-      startSlider.value = parseFloat(endSlider.value) - 0.1;
-    }
+    let v = parseFloat(startSlider.value);
+    const min = parseFloat(startSlider.min);
+    const endT = parseFloat(endSlider.value);
+    if (v > endT - MIN_GAP) v = Math.max(min, endT - MIN_GAP);
+    if (v < min) v = min;
+    startSlider.value = v;
+    startInput.value = v.toFixed(1);
+    isPreviewingTrim = false;
     updateSliderTrack();
   });
 
   endSlider.addEventListener('input', () => {
-    if (parseFloat(endSlider.value) <= parseFloat(startSlider.value)) {
-      endSlider.value = parseFloat(startSlider.value) + 0.1;
-    }
+    let v = parseFloat(endSlider.value);
+    const max = parseFloat(endSlider.max);
+    const startT = parseFloat(startSlider.value);
+    if (v < startT + MIN_GAP) v = Math.min(max, startT + MIN_GAP);
+    if (v > max) v = max;
+    endSlider.value = v;
+    endInput.value = v.toFixed(1);
+    isPreviewingTrim = false;
+    updateSliderTrack();
+  });
+
+  // --- Direct numeric input sync ---
+  startInput.addEventListener('change', () => {
+    let v = parseFloat(startInput.value);
+    if (isNaN(v)) v = 0;
+    const min = parseFloat(startSlider.min);
+    const max = parseFloat(startSlider.max);
+    const endT = parseFloat(endSlider.value);
+    v = Math.max(min, Math.min(v, endT - MIN_GAP, max));
+    startSlider.value = v;
+    startInput.value = v.toFixed(1);
+    stopPreview();
+    isPreviewingTrim = false;
+    updateSliderTrack();
+  });
+  endInput.addEventListener('change', () => {
+    let v = parseFloat(endInput.value);
+    if (isNaN(v)) v = parseFloat(endInput.max);
+    const min = parseFloat(startSlider.min);
+    const max = parseFloat(endSlider.max);
+    const startT = parseFloat(startSlider.value);
+    v = Math.max(min, Math.min(v, max));
+    v = Math.max(v, startT + MIN_GAP);
+    endSlider.value = v;
+    endInput.value = v.toFixed(1);
+    stopPreview();
+    isPreviewingTrim = false;
     updateSliderTrack();
   });
 
   function updateSliderTrack() {
     const min = parseFloat(startSlider.min);
     const max = parseFloat(startSlider.max) || 1;
-    const startValNum = parseFloat(startSlider.value);
-    const endValNum = parseFloat(endSlider.value);
+    const sNum = parseFloat(startSlider.value);
+    const eNum = parseFloat(endSlider.value);
 
-    const startPercent = ((startValNum - min) / (max - min)) * 100;
-    const endPercent = ((endValNum - min) / (max - min)) * 100;
+    const sPercent = ((sNum - min) / (max - min)) * 100;
+    const ePercent = ((eNum - min) / (max - min)) * 100;
 
-    sliderHighlight.style.left = startPercent + '%';
-    sliderHighlight.style.width = (endPercent - startPercent) + '%';
+    sliderHighlight.style.left = sPercent + '%';
+    sliderHighlight.style.width = (ePercent - sPercent) + '%';
 
-    startVal.innerText = `${startValNum.toFixed(1)}s`;
-    endVal.innerText = `${endValNum.toFixed(1)}s`;
+    startVal.innerText = `${sNum.toFixed(1)}s`;
+    endVal.innerText = `${eNum.toFixed(1)}s`;
+
+    // Position the custom trim handles (round knob + thin vertical line on top).
+    if (startHandle) startHandle.style.left = sPercent + '%';
+    if (endHandle) endHandle.style.left = ePercent + '%';
+
+    drawWaveform(); // Re-paint selection colours when the trim range changes
   }
 
   function setPlayheadTime(timeSeconds) {
@@ -248,13 +451,126 @@
     playheadLine.style.left = `${percent}%`;
     playheadHandle.style.left = `${percent}%`;
     currentVal.innerText = `${clampedTime.toFixed(1)}s`;
-    
+
     audioPlayer.currentTime = clampedTime;
   }
 
-  // Pointer Capture Events for Smooth Handle Dragging
+  // --- Waveform rendering ---
+  function computeWaveformPeaks() {
+    if (!audioBuffer) { waveformPeaks = null; return; }
+    const w = Math.max(1, Math.floor(timelineContainer.getBoundingClientRect().width));
+    waveformCachedWidth = w;
+
+    const channels = audioBuffer.numberOfChannels;
+    const length = audioBuffer.length;
+    const samplesPerPixel = Math.max(1, Math.floor(length / w));
+
+    waveformPeaks = new Float32Array(w);
+    for (let i = 0; i < w; i++) {
+      const start = i * samplesPerPixel;
+      const end = Math.min(start + samplesPerPixel, length);
+      let maxPeak = 0;
+      for (let c = 0; c < channels; c++) {
+        const data = audioBuffer.getChannelData(c);
+        for (let j = start; j < end; j++) {
+          const v = Math.abs(data[j]);
+          if (v > maxPeak) maxPeak = v;
+        }
+      }
+      waveformPeaks[i] = maxPeak;
+    }
+  }
+
+  function setupWaveformCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    const w = Math.max(1, Math.floor(timelineContainer.getBoundingClientRect().width));
+    const h = Math.max(1, Math.floor(timelineContainer.getBoundingClientRect().height));
+    waveformCanvas.width = w * dpr;
+    waveformCanvas.height = h * dpr;
+    waveformCanvas.style.width = w + 'px';
+    waveformCanvas.style.height = h + 'px';
+    waveformCtx.setTransform(1, 0, 0, 1, 0, 0);
+    waveformCtx.scale(dpr, dpr);
+  }
+
+  function drawWaveform() {
+    if (!waveformPeaks) return;
+    if (waveformCanvas.width === 0) setupWaveformCanvas();
+
+    const w = waveformCachedWidth;
+    const h = waveformCanvas.getBoundingClientRect().height;
+    waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
+
+    const mid = h / 2;
+    const sNum = parseFloat(startSlider.value);
+    const eNum = parseFloat(endSlider.value);
+    const max = parseFloat(startSlider.max) || 1;
+    const startX = Math.round((sNum / max) * w);
+    const endX = Math.round((eNum / max) * w);
+
+    const usable = h * 0.85;
+    for (let i = 0; i < w; i++) {
+      const peak = waveformPeaks[i] || 0;
+      const height = Math.max(1, peak * usable);
+      waveformCtx.fillStyle = (i >= startX && i <= endX) ? '#3b82f6' : '#cbd5e1';
+      waveformCtx.fillRect(i, mid - height / 2, 1, height);
+    }
+  }
+
+  // Recompute peaks on resize (debounced via rAF)
+  let resizeRaf = null;
+  window.addEventListener('resize', () => {
+    if (!audioBuffer) return;
+    if (resizeRaf) cancelAnimationFrame(resizeRaf);
+    resizeRaf = requestAnimationFrame(() => {
+      setupWaveformCanvas();
+      computeWaveformPeaks();
+      drawWaveform();
+    });
+  });
+
+  // --- Custom trim-handle drag (thin vertical line + round knob, replacing the wide round range thumbs) ---
+  function attachTrimHandleDrag(handleEl, sliderEl) {
+    handleEl.addEventListener('pointerdown', (e) => {
+      isPreviewingTrim = false;
+      audioPlayer.pause();
+      try { handleEl.setPointerCapture(e.pointerId); } catch (_) {}
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = timelineContainer.getBoundingClientRect();
+      const min = parseFloat(sliderEl.min);
+      const max = parseFloat(sliderEl.max);
+      const step = parseFloat(sliderEl.step) || 0.1;
+      const span = max - min;
+
+      const onMove = (ev) => {
+        const x = Math.max(0, Math.min(ev.clientX - rect.left, rect.width));
+        const raw = (x / rect.width) * span + min;
+        const stepped = Math.round((raw - min) / step) * step + min;
+        const clamped = Math.max(min, Math.min(stepped, max));
+        sliderEl.value = clamped;
+        sliderEl.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      const onUp = (ev) => {
+        try { handleEl.releasePointerCapture(ev.pointerId); } catch (_) {}
+        handleEl.removeEventListener('pointermove', onMove);
+        handleEl.removeEventListener('pointerup', onUp);
+        handleEl.removeEventListener('pointercancel', onUp);
+      };
+      handleEl.addEventListener('pointermove', onMove);
+      handleEl.addEventListener('pointerup', onUp);
+      handleEl.addEventListener('pointercancel', onUp);
+    });
+  }
+
+  attachTrimHandleDrag(startHandle, startSlider);
+  attachTrimHandleDrag(endHandle, endSlider);
+
+  // --- Playhead drag interactions ---
   playheadHandle.addEventListener('pointerdown', (e) => {
     isDraggingPlayhead = true;
+    isPreviewingTrim = false;
     audioPlayer.pause();
     playheadHandle.setPointerCapture(e.pointerId);
     e.stopPropagation();
@@ -269,16 +585,17 @@
     if (isDraggingPlayhead) {
       isDraggingPlayhead = false;
       playheadHandle.releasePointerCapture(e.pointerId);
-      status.innerText = `Playhead set at ${audioPlayer.currentTime.toFixed(1)}s`;
+      setStatus(`Playhead set at ${audioPlayer.currentTime.toFixed(1)}s`);
     }
   });
 
-  // Timeline track click support
+  // Timeline track click support. Use closest() so events bubbling from inside a handle are also filtered.
   timelineContainer.addEventListener('click', (e) => {
-    if (e.target === startSlider || e.target === endSlider || e.target === playheadHandle) return;
+    if (e.target.closest('.trim-handle, #startSlider, #endSlider, #playheadHandle')) return;
     audioPlayer.pause();
+    isPreviewingTrim = false;
     movePlayheadFromClientX(e.clientX);
-    status.innerText = `Playhead set at ${audioPlayer.currentTime.toFixed(1)}s`;
+    setStatus(`Playhead set at ${audioPlayer.currentTime.toFixed(1)}s`);
   });
 
   function movePlayheadFromClientX(clientX) {
@@ -286,31 +603,41 @@
     const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
     const percent = x / rect.width;
     const max = parseFloat(startSlider.max) || 1;
-    
+
     setPlayheadTime(percent * max);
-    status.innerText = `Scrubbing: ${audioPlayer.currentTime.toFixed(1)}s`;
+    setStatus(`Scrubbing: ${audioPlayer.currentTime.toFixed(1)}s`);
   }
 
-  // Set Playhead position as Start or End point
+  // --- Set Playhead position as Start or End point ---
   setStartBtn.addEventListener('click', () => {
     const currentTime = audioPlayer.currentTime;
-    if (currentTime < parseFloat(endSlider.value)) {
+    const endT = parseFloat(endSlider.value);
+    if (currentTime < endT - MIN_GAP) {
       startSlider.value = currentTime;
+      startInput.value = currentTime.toFixed(1);
+      isPreviewingTrim = false;
       updateSliderTrack();
-      status.innerText = `Start point updated to ${currentTime.toFixed(1)}s`;
+      setStatus(`Start point updated to ${currentTime.toFixed(1)}s`);
+    } else {
+      setStatus(`Cannot set start at or after end (${endT.toFixed(1)}s).`);
     }
   });
 
   setEndBtn.addEventListener('click', () => {
     const currentTime = audioPlayer.currentTime;
-    if (currentTime > parseFloat(startSlider.value)) {
+    const startT = parseFloat(startSlider.value);
+    if (currentTime > startT + MIN_GAP) {
       endSlider.value = currentTime;
+      endInput.value = currentTime.toFixed(1);
+      isPreviewingTrim = false;
       updateSliderTrack();
-      status.innerText = `End point updated to ${currentTime.toFixed(1)}s`;
+      setStatus(`End point updated to ${currentTime.toFixed(1)}s`);
+    } else {
+      setStatus(`Cannot set end at or before start (${startT.toFixed(1)}s).`);
     }
   });
 
-  // Smooth Audio Sync During Playback
+  // --- Playhead visual sync (during playback) ---
   audioPlayer.addEventListener('timeupdate', () => {
     if (!isDraggingPlayhead) {
       const max = parseFloat(startSlider.max) || 1;
@@ -319,42 +646,65 @@
       playheadHandle.style.left = `${percent}%`;
       currentVal.innerText = `${audioPlayer.currentTime.toFixed(1)}s`;
 
-      if (audioPlayer.currentTime >= parseFloat(endSlider.value) && !audioPlayer.paused) {
+      // Only auto-pause at trim end if playback actually started inside the trim range.
+      if (isPreviewingTrim && audioPlayer.currentTime >= parseFloat(endSlider.value) && !audioPlayer.paused) {
+        isPreviewingTrim = false;
         stopPreview();
-        status.innerText = "Reached end of trim range.";
+        setStatus("Reached end of trim range.");
       }
     }
   });
 
-  // Play audio starting from wherever the red playhead is currently placed
+  // When playback ends naturally, clear our preview flag too.
+  audioPlayer.addEventListener('ended', () => {
+    isPreviewingTrim = false;
+  });
+
+  // --- Play from playhead ---
   previewBtn.addEventListener('click', async () => {
+    const start = parseFloat(startSlider.value);
+    const end = parseFloat(endSlider.value);
+    const t = audioPlayer.currentTime;
+    // Only mark this as a "trim preview" when we actually started inside the trim range.
+    isPreviewingTrim = (t >= start && t < end - 0.01);
     try {
       await audioPlayer.play();
-      status.innerText = "Playing audio...";
+      setStatus(isPreviewingTrim ? "Previewing trim region..." : "Playing audio...");
     } catch (err) {
-      status.innerText = "Click Play again.";
+      console.warn('Audio playback failed:', err);
+      setStatus("Click Play again.");
     }
   });
 
-  // Stop playback
   stopBtn.addEventListener('click', () => {
+    isPreviewingTrim = false;
     stopPreview();
-    status.innerText = "Playback stopped.";
+    setStatus("Playback stopped.");
   });
 
   function stopPreview() {
     audioPlayer.pause();
   }
 
-  // Export Trimmed Audio as WAV
+  // --- Reset / load different file ---
+  resetBtn.addEventListener('click', () => {
+    clearFileState();
+  });
+
+  // --- Export trimmed audio as WAV (with short fade in/out to prevent boundary clicks) ---
   exportBtn.addEventListener('click', () => {
     stopPreview();
+    isPreviewingTrim = false;
 
     const start = parseFloat(startSlider.value);
     const end = parseFloat(endSlider.value);
     const trimmedDuration = end - start;
+    if (trimmedDuration <= 0) {
+      setStatus("Trim range is empty.", true);
+      return;
+    }
 
-    status.innerText = "Processing export...";
+    setStatus("Processing export...");
 
     const sampleRate = audioBuffer.sampleRate;
     const channels = audioBuffer.numberOfChannels;
@@ -363,26 +713,46 @@
 
     const trimmedBuffer = audioCtx.createBuffer(channels, frameCount, sampleRate);
 
+    // Short fade in/out (~10ms) to prevent audible boundary clicks at the trim edges.
+    const fadeSamples = Math.min(frameCount, Math.floor(0.01 * sampleRate));
     for (let c = 0; c < channels; c++) {
       const channelData = audioBuffer.getChannelData(c);
       const trimmedData = trimmedBuffer.getChannelData(c);
       for (let i = 0; i < frameCount; i++) {
-        trimmedData[i] = channelData[startOffset + i];
+        let s = channelData[startOffset + i];
+        if (i < fadeSamples) {
+          s *= i / fadeSamples;
+        } else if (i >= frameCount - fadeSamples && frameCount > fadeSamples) {
+          s *= (frameCount - 1 - i) / fadeSamples;
+        }
+        trimmedData[i] = s;
       }
     }
 
     const wavBlob = bufferToWav(trimmedBuffer);
     const url = URL.createObjectURL(wavBlob);
-    
+
+    // Use original filename with the trim range appended so users keep their naming.
+    const originalName = (audioInput.files && audioInput.files[0] && audioInput.files[0].name) || 'audio.wav';
+    const base = (originalName.replace(/\.[^/.]+$/, '') || 'trimmed');
+    const filename = `${base}_${start.toFixed(1)}s-${end.toFixed(1)}s.wav`;
+
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'trimmed_audio.wav';
+    a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
 
-    status.innerText = "Export complete!";
+    // Free the blob URL after the download has had time to start.
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+    setStatus(`Export complete: ${filename}`);
   });
 
-  // Helper function to encode Web Audio buffer into a downloadable WAV file
+  // Helper function to encode Web Audio buffer into a downloadable WAV file.
+  // Note: WAV RIFF/data chunk sizes are unsigned 32-bit, so files beyond ~4GB cannot
+  // be encoded (a limit of the format itself, not a bug here).
   function bufferToWav(abuffer) {
     let numOfChan = abuffer.numberOfChannels,
         length = abuffer.length * numOfChan * 2 + 44,
