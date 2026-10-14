@@ -2,799 +2,1226 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simple Audio Trimmer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Streamlined Audio Trimmer & MP3 Converter</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- lamejs for client-side MP3 encoding -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <style>
-    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: #f4f6f8; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-    .card { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); padding: 30px; width: 100%; max-width: 520px; }
-    h2 { margin-top: 0; color: #1a1a1a; font-size: 1.5rem; text-align: center; }
-
-    .upload-box { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 20px; cursor: pointer; transition: 0.2s; }
-    .upload-box:hover { border-color: #3b82f6; background: #f8fafc; }
-    input[type="file"] { display: none; }
-
-    .controls { display: none; margin-top: 20px; }
-    .time-display { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; color: #475569; margin-bottom: 12px; }
-
-    /* File meta line (channels, sample rate, length) */
-    .file-meta { font-size: 0.75rem; color: #64748b; text-align: center; margin-bottom: 10px; letter-spacing: 0.02em; }
-
-    /* Direct numeric start/end entry */
-    .trim-inputs { display: flex; gap: 10px; margin-bottom: 15px; }
-    .trim-inputs label { flex: 1; font-size: 0.75rem; color: #475569; font-weight: 600; display: block; }
-    .trim-inputs input { width: 100%; padding: 6px 8px; margin-top: 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.85rem; }
-    .trim-inputs input:focus { outline: none; border-color: #3b82f6; }
-
-    /* Interactive Workspace Container */
-    .timeline-container { position: relative; height: 90px; margin-bottom: 12px; user-select: none; }
-
-    /* Waveform canvas sits at the bottom of the z-stack, under the track elements */
-    #waveformCanvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      pointer-events: none;
-    }
-
-    .slider-track { position: absolute; height: 8px; width: 100%; background: #e2e8f0; border-radius: 4px; top: 12px; z-index: 2; }
-    .slider-highlight { position: absolute; height: 8px; background: #3b82f6; border-radius: 4px; top: 12px; pointer-events: none; z-index: 3; }
-
-    /* Extended Vertical Red Marker Line */
-    .playhead-line {
-      position: absolute;
-      top: 0;
-      bottom: 20px;
-      left: 0%;
-      width: 2px;
-      background-color: #ef4444;
-      pointer-events: none;
-      z-index: 25;
-      box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
-      transform: translateX(-1px); /* Center the 2px line on its anchor point so it aligns with the handle */
-    }
-
-    /* Red Drag Handle at the Bottom */
-    .playhead-handle {
-      position: absolute;
-      bottom: 0;
-      left: 0%;
-      width: 24px;
-      height: 24px;
-      background-color: #ef4444;
-      border: 2px solid white;
-      border-radius: 6px;
-      transform: translateX(-50%);
-      z-index: 40;
-      cursor: grab;
-      touch-action: none;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-    }
-    .playhead-handle:active { cursor: grabbing; transform: translateX(-50%) scale(1.15); background-color: #dc2626; }
-
-    /* Trimming Dual Range Sliders */
-    input[type="range"] {
-      position: absolute;
-      width: 100%;
-      height: 8px;
-      top: 12px;
-      margin: 0;
-      pointer-events: none;
-      -webkit-appearance: none;
-      background: none;
-      z-index: 20;
-    }
-    /* Native range-input thumbs are intentionally hidden — we draw our own thin-line + knob handles on top.
-       The inputs themselves stay in the DOM so arrow-key navigation still works for accessibility. */
-    input[type="range"]::-webkit-slider-thumb {
-      pointer-events: none;
-      width: 0;
-      height: 0;
-      border: none;
-      background: transparent;
-      box-shadow: none;
-      -webkit-appearance: none;
-    }
-    input[type="range"]::-moz-range-thumb {
-      pointer-events: none;
-      width: 0;
-      height: 0;
-      border: none;
-      background: transparent;
-      box-shadow: none;
-    }
-
-    /* Custom trim handles: thin vertical line extending downward, with a round grab knob on top. */
-    .trim-handle {
-      position: absolute;
-      width: 18px;          /* Wider than the visual line so it's easier to grab */
-      height: 100%;
-      bottom: 0;
-      cursor: ew-resize;
-      z-index: 30;          /* Above playhead-line (25), below playhead-handle (40) */
-      touch-action: none;
+    .handle-marker {
       user-select: none;
-      pointer-events: auto;
-      transform: translateX(-50%);
+      touch-action: none;
     }
-    .trim-handle .trim-line {
-      position: absolute;
-      top: 14px;            /* Just below the knob */
-      bottom: 0;
-      left: 50%;
-      width: 2px;
-      background: #1d4ed8;
-      border-radius: 1px;
-      transform: translateX(-50%);
-      box-shadow: 0 0 4px rgba(29, 78, 216, 0.35);
-      pointer-events: none;
+    .top-grip-emerald {
+      cursor: ew-resize;
+      filter: drop-shadow(0 2px 6px rgba(16, 185, 129, 0.45));
     }
-    .trim-handle .trim-knob {
-      position: absolute;
-      top: 0;
-      left: 50%;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: #1d4ed8;
-      border: 2px solid white;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.3);
-      transform: translateX(-50%);
-      transition: transform 0.12s ease, background 0.12s ease;
-      pointer-events: none;
+    .top-grip-rose {
+      cursor: ew-resize;
+      filter: drop-shadow(0 2px 6px rgba(244, 63, 94, 0.45));
     }
-    .trim-handle:hover .trim-knob {
-      background: #2563eb;
-      transform: translateX(-50%) scale(1.15);
+    .bottom-grip-amber {
+      cursor: pointer;
+      filter: drop-shadow(0 -2px 8px rgba(245, 158, 11, 0.6));
     }
-    .trim-handle:active .trim-knob {
-      background: #1e40af;
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
     }
-
-    .button-group { display: flex; gap: 8px; margin-top: 15px; }
-    button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: 0.2s; }
-    .btn-action { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
-    .btn-action:hover { background: #e2e8f0; }
-    .btn-preview { background: #e2e8f0; color: #1e293b; }
-    .btn-preview:hover { background: #cbd5e1; }
-    .btn-stop { background: #fee2e2; color: #991b1b; }
-    .btn-stop:hover { background: #fca5a5; }
-    .btn-export { background: #2563eb; color: white; width: 100%; margin-top: 10px; padding: 12px; }
-    .btn-export:hover { background: #1d4ed8; }
-    .btn-reset { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; padding: 8px 12px; margin-top: 8px; font-size: 0.75rem; flex: none; }
-    .btn-reset:hover { background: #e2e8f0; color: #334155; }
-
-    .status { text-align: center; font-size: 0.85rem; color: #64748b; margin-top: 15px; min-height: 1.2em; }
-    .status.error { color: #dc2626; font-weight: 600; }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    input[type=range] {
+      accent-color: #6366f1;
+    }
   </style>
 </head>
-<body>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-indigo-500 selection:text-white antialiased">
 
-<div class="card">
-  <h2>Audio Trimmer</h2>
-
-  <!-- File Upload Area (click only - no drag-and-drop) -->
-  <div class="upload-box" onclick="document.getElementById('audioInput').click()">
-    <span id="uploadLabel">📁 Choose Audio File</span>
-    <input type="file" id="audioInput" accept="audio/*">
-  </div>
-
-  <!-- Hidden HTML5 Audio Element -->
-  <audio id="audioPlayer"></audio>
-
-  <!-- Trimming Controls -->
-  <div class="controls" id="controls">
-    <div class="file-meta" id="fileMeta"></div>
-
-    <div class="time-display">
-      <span>Start: <strong id="startVal">0.0s</strong></span>
-      <span>Playhead: <strong id="currentVal" style="color:#ef4444;">0.0s</strong></span>
-      <span>End: <strong id="endVal">0.0s</strong></span>
-    </div>
-
-    <!-- Timeline Workspace -->
-    <div class="timeline-container" id="timelineContainer">
-      <canvas id="waveformCanvas"></canvas>
-      <div class="slider-track"></div>
-      <div class="slider-highlight" id="sliderHighlight"></div>
-
-      <!-- Vertical Red Line -->
-      <div class="playhead-line" id="playheadLine"></div>
-
-      <!-- Bottom Red Drag Handle -->
-      <div class="playhead-handle" id="playheadHandle" title="Drag to scrub audio" role="slider" aria-label="Audio playhead"></div>
-
-      <input type="range" id="startSlider" min="0" step="0.1" value="0" aria-label="Trim start">
-      <input type="range" id="endSlider" min="0" step="0.1" value="0" aria-label="Trim end">
-
-      <!-- Custom thin-line + round-knob trim handles (the wide round thumbs of the inputs above are hidden) -->
-      <div class="trim-handle" id="startHandle" title="Trim start — drag to adjust">
-        <div class="trim-line"></div>
-        <div class="trim-knob"></div>
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-40 px-4 py-3">
+    <div class="max-w-5xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white shadow-md shadow-indigo-600/30">
+          <i class="ph-bold ph-waveform text-lg"></i>
+        </div>
+        <h1 class="text-sm font-semibold tracking-tight text-white flex items-center gap-2">
+          Audio Trimmer <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Studio</span>
+        </h1>
       </div>
-      <div class="trim-handle" id="endHandle" title="Trim end — drag to adjust">
-        <div class="trim-line"></div>
-        <div class="trim-knob"></div>
+
+      <div class="flex items-center gap-2">
+        <label for="audioFileInput" class="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition active:scale-95">
+          <i class="ph-bold ph-folder-open text-sm"></i>
+          <span>Open Audio</span>
+        </label>
+        <input type="file" id="audioFileInput" accept="audio/*" class="hidden">
       </div>
     </div>
+  </header>
 
-    <div class="trim-inputs">
-      <label>Start (s)<input type="number" id="startInput" min="0" step="0.1" value="0"></label>
-      <label>End (s)<input type="number" id="endInput" min="0" step="0.1" value="0"></label>
+  <!-- Main Container -->
+  <main class="flex-1 max-w-5xl w-full mx-auto p-3 sm:p-5 flex flex-col gap-4">
+
+    <!-- Upload Dropzone (Initial State) -->
+    <div id="dropzoneContainer" class="border-2 border-dashed border-slate-800 hover:border-indigo-500 bg-slate-900/30 hover:bg-slate-900/60 rounded-2xl p-10 sm:p-14 text-center transition cursor-pointer flex flex-col items-center justify-center">
+      <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center text-3xl mb-3 border border-indigo-500/20">
+        <i class="ph-duotone ph-waveform"></i>
+      </div>
+      <h2 class="text-base sm:text-lg font-semibold text-slate-200">Drop an audio file here or click to open</h2>
+      <p class="text-xs text-slate-400 mt-1 max-w-sm">Supports MP3, WAV, AAC, M4A, OGG, FLAC. 100% processed client-side.</p>
     </div>
 
-    <div class="button-group">
-      <button class="btn-action" id="setStartBtn">📍 Set Playhead as Start</button>
-      <button class="btn-action" id="setEndBtn">📍 Set Playhead as End</button>
+    <!-- Active Workspace -->
+    <div id="workspace" class="hidden flex-col gap-4">
+
+      <!-- 1. TOP BAR ABOVE WAVEFORM -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        
+        <!-- Live Time Display & Slim Play/Pause Control -->
+        <div class="flex items-center gap-2.5">
+          <!-- Slim Play/Pause Button -->
+          <button id="slimPlayBtn" class="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-md shadow-amber-400/20 active:scale-95 transition">
+            <i id="slimPlayIcon" class="ph-fill ph-play text-xs"></i>
+            <span id="slimPlayText">PLAY</span>
+          </button>
+
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+            <span class="w-2 h-2 rounded-full bg-amber-400" id="playStatusDot"></span>
+            <span class="text-slate-400 font-medium">Playhead:</span>
+            <span id="playheadTopDisplay" class="font-mono font-bold text-amber-300">00:00.000</span>
+          </div>
+          <div class="text-slate-400 font-mono flex items-center gap-1.5">
+            <span class="text-slate-500">/</span>
+            <span>Total:</span>
+            <span id="totalDurationDisplay" class="text-slate-200 font-semibold">00:00.000</span>
+          </div>
+        </div>
+
+        <!-- Zoom Controls -->
+        <div class="flex items-center gap-2 bg-slate-950/80 border border-slate-800 px-2.5 py-1 rounded-xl">
+          <span class="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+            <i class="ph-bold ph-magnifying-glass text-slate-500"></i> Zoom
+          </span>
+          <button id="zoomOutBtn" class="p-1 hover:text-indigo-400 text-slate-300 rounded" title="Zoom Out">
+            <i class="ph-bold ph-minus text-xs"></i>
+          </button>
+          <input type="range" id="zoomSlider" min="1" max="10" step="0.2" value="1" class="w-20 sm:w-28 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+          <button id="zoomInBtn" class="p-1 hover:text-indigo-400 text-slate-300 rounded" title="Zoom In">
+            <i class="ph-bold ph-plus text-xs"></i>
+          </button>
+          <button id="zoomResetBtn" class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300">Fit</button>
+        </div>
+
+      </div>
+
+      <!-- 2. WAVEFORM DISPLAY AREA -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl relative flex flex-col">
+        
+        <!-- Timeline Ruler -->
+        <div id="timelineRuler" class="w-full h-5 relative border-b border-slate-800 text-[10px] text-slate-500 font-mono select-none overflow-hidden mb-1"></div>
+
+        <!-- Scrollable Waveform Viewport -->
+        <div id="waveformScrollContainer" class="w-full overflow-x-auto relative select-none rounded-xl bg-slate-950 border border-slate-800">
+          <div id="canvasWrapper" class="relative h-44 sm:h-52 w-full min-w-full">
+            
+            <!-- Canvas -->
+            <canvas id="waveformCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+            <!-- Dimmed Excluded Regions -->
+            <div id="dimLeft" class="absolute top-0 bottom-0 left-0 bg-slate-950/80 pointer-events-none"></div>
+            <div id="selectedRegion" class="absolute top-0 bottom-0 border-y border-indigo-500/30 bg-indigo-500/[0.08] pointer-events-none"></div>
+            <div id="dimRight" class="absolute top-0 bottom-0 right-0 bg-slate-950/80 pointer-events-none"></div>
+
+            <!-- START MARKER (Handle at TOP) -->
+            <div id="handleStart" class="handle-marker absolute top-0 bottom-0 w-8 -ml-4 z-30 flex flex-col items-center justify-start pointer-events-none">
+              <div class="top-grip-emerald pointer-events-auto h-6 px-2 rounded-b-md bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black flex items-center justify-center gap-0.5 shadow-md active:scale-95" title="Drag Start Handle">
+                <i class="ph-bold ph-caret-right text-xs"></i>
+                <span>IN</span>
+              </div>
+              <div class="w-0.5 flex-1 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.7)] pointer-events-auto"></div>
+            </div>
+
+            <!-- END MARKER (Handle at TOP) -->
+            <div id="handleEnd" class="handle-marker absolute top-0 bottom-0 w-8 -ml-4 z-30 flex flex-col items-center justify-start pointer-events-none">
+              <div class="top-grip-rose pointer-events-auto h-6 px-2 rounded-b-md bg-rose-500 hover:bg-rose-400 text-slate-950 text-[10px] font-black flex items-center justify-center gap-0.5 shadow-md active:scale-95" title="Drag End Handle">
+                <span>OUT</span>
+                <i class="ph-bold ph-caret-left text-xs"></i>
+              </div>
+              <div class="w-0.5 flex-1 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.7)] pointer-events-auto"></div>
+            </div>
+
+            <!-- PLAYHEAD MARKER (Handle at BOTTOM) -->
+            <div id="playhead" class="handle-marker absolute top-0 bottom-0 w-8 -ml-4 z-40 flex flex-col items-center justify-end pointer-events-none">
+              <div class="w-0.5 flex-1 bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.9)] pointer-events-auto"></div>
+              <div id="playheadGripBtn" class="bottom-grip-amber pointer-events-auto h-7 px-2.5 rounded-t-md bg-amber-400 hover:bg-amber-300 text-slate-950 text-[10px] font-black flex items-center justify-center gap-1 shadow-lg active:scale-95 transition" title="Tap to Play/Pause • Drag to seek">
+                <i id="playheadGripIcon" class="ph-fill ph-play text-xs"></i>
+                <span id="playheadGripText">PLAY</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 3. SINGLE COMPACT TIME WINDOW BENEATH WAVEFORM -->
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3 flex flex-col gap-2.5 shadow-md">
+        
+        <!-- Line 1 (Start) -->
+        <div class="flex items-center justify-between gap-2 bg-slate-950/70 border border-emerald-500/25 px-3 py-1.5 rounded-xl">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span class="text-xs font-bold text-emerald-400 uppercase tracking-wider w-12">START</span>
+            <input type="text" id="startInput" class="bg-slate-900 border border-slate-700 focus:border-emerald-500 text-slate-100 font-mono text-xs sm:text-sm font-semibold px-2 py-1 rounded-lg w-28 sm:w-32 focus:outline-none transition" value="00:00.000">
+          </div>
+          <button id="snapStartBtn" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 flex items-center gap-1 transition active:scale-95">
+            <i class="ph-bold ph-caret-line-left text-xs"></i>
+            <span>Set to Playhead</span>
+          </button>
+        </div>
+
+        <!-- Line 2 (End) -->
+        <div class="flex items-center justify-between gap-2 bg-slate-950/70 border border-rose-500/25 px-3 py-1.5 rounded-xl">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            <span class="text-xs font-bold text-rose-400 uppercase tracking-wider w-12">END</span>
+            <input type="text" id="endInput" class="bg-slate-900 border border-slate-700 focus:border-rose-500 text-slate-100 font-mono text-xs sm:text-sm font-semibold px-2 py-1 rounded-lg w-28 sm:w-32 focus:outline-none transition" value="00:00.000">
+          </div>
+          <button id="snapEndBtn" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 flex items-center gap-1 transition active:scale-95">
+            <i class="ph-bold ph-caret-line-right text-xs"></i>
+            <span>Set to Playhead</span>
+          </button>
+        </div>
+
+        <!-- Selection Duration Badge -->
+        <div class="text-center pt-0.5">
+          <span class="text-[11px] text-slate-400">
+            Selection Duration: <strong id="durationDisplay" class="font-mono text-indigo-400 font-bold ml-1">00:00.000</strong> (<span id="durationSecDisplay" class="font-mono text-slate-400">0.00s</span>)
+          </span>
+        </div>
+
+      </div>
+
+      <!-- 4. EXPORT & AUDIO CONTROLS BAR -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 sm:p-4 flex flex-col gap-3 shadow-md">
+        
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-center">
+          
+          <!-- Format Selector & Bitrate -->
+          <div class="md:col-span-4 flex items-center gap-2">
+            <!-- Format Toggle -->
+            <div class="flex bg-slate-950 p-0.5 rounded-xl border border-slate-800 shrink-0">
+              <button id="fmtMp3Btn" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition">MP3</button>
+              <button id="fmtWavBtn" class="px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition">WAV</button>
+            </div>
+
+            <!-- MP3 Kbps Select (16 to 320 kbps) -->
+            <div id="mp3RateWrapper" class="flex-1 min-w-[150px]">
+              <select id="bitrateSelect" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500">
+                <option value="16">16 kbps (Speech • 16kHz)</option>
+                <option value="32">32 kbps (Voice • 22kHz)</option>
+                <option value="64">64 kbps (Voice)</option>
+                <option value="96">96 kbps (Radio)</option>
+                <option value="128" selected>128 kbps (Standard)</option>
+                <option value="192">192 kbps (High)</option>
+                <option value="256">256 kbps (Very High)</option>
+                <option value="320">320 kbps (Max 320k)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Micro-strip: Fade In, Fade Out & Volume -->
+          <div class="md:col-span-5 grid grid-cols-3 gap-1.5 bg-slate-950/80 border border-slate-800/80 px-2.5 py-1.5 rounded-xl text-[11px]">
+            <div class="flex items-center gap-1 min-w-0">
+              <span class="text-slate-400 shrink-0 text-[10px]">In:</span>
+              <input type="range" id="fadeInRange" min="0" max="5" step="0.5" value="0" class="w-full h-1 bg-slate-800 rounded">
+              <span id="fadeInVal" class="font-mono text-[10px] text-slate-300 w-5 text-right shrink-0">0s</span>
+            </div>
+            <div class="flex items-center gap-1 border-x border-slate-800/80 px-1 min-w-0">
+              <span class="text-slate-400 shrink-0 text-[10px]">Out:</span>
+              <input type="range" id="fadeOutRange" min="0" max="5" step="0.5" value="0" class="w-full h-1 bg-slate-800 rounded">
+              <span id="fadeOutVal" class="font-mono text-[10px] text-slate-300 w-5 text-right shrink-0">0s</span>
+            </div>
+            <div class="flex items-center gap-1 min-w-0">
+              <i class="ph-bold ph-speaker-high text-indigo-400 text-[11px] shrink-0" title="Volume"></i>
+              <input type="range" id="volumeRange" min="0" max="2" step="0.05" value="1" class="w-full h-1 bg-slate-800 rounded">
+              <span id="volumeVal" class="font-mono text-[10px] text-indigo-300 w-7 text-right shrink-0">100%</span>
+            </div>
+          </div>
+
+          <!-- Export Button -->
+          <div class="md:col-span-3">
+            <button id="exportBtn" class="w-full py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-md shadow-indigo-600/30 flex items-center justify-center gap-1.5 transition active:scale-95 disabled:opacity-50">
+              <i class="ph-bold ph-download-simple text-sm"></i>
+              <span>Export Audio</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Encoding Progress Bar -->
+        <div id="encodingProgressWrapper" class="hidden bg-slate-950 p-2.5 rounded-xl border border-indigo-500/30">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span id="encodingStatusText" class="text-indigo-300 flex items-center gap-1.5">
+              <i class="ph-bold ph-spinner animate-spin"></i> Encoding MP3...
+            </span>
+            <div class="flex items-center gap-2">
+              <span id="encodingPercent" class="font-mono font-bold text-white">0%</span>
+              <button id="cancelEncodeBtn" class="text-[10px] text-rose-400 hover:text-rose-300 px-1.5 py-0.5 rounded bg-rose-500/10 border border-rose-500/20">Cancel</button>
+            </div>
+          </div>
+          <div class="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div id="encodingBar" class="h-full bg-indigo-500 w-0 transition-all"></div>
+          </div>
+        </div>
+
+        <!-- Post Export Preview & Download -->
+        <div id="exportResultWrapper" class="hidden bg-slate-950 p-2.5 rounded-xl border border-emerald-500/30 flex items-center justify-between gap-3 flex-wrap">
+          <div class="flex items-center gap-2 text-xs">
+            <i class="ph-bold ph-check-circle text-emerald-400 text-base"></i>
+            <span class="text-emerald-400 font-semibold">Ready</span>
+            <span id="exportSizeLabel" class="text-slate-400 font-mono text-[11px]">0 KB</span>
+          </div>
+          <audio id="exportedAudio" controls class="h-7 w-48 sm:w-64"></audio>
+          <a id="downloadExportBtn" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold rounded-lg shadow transition inline-flex items-center gap-1">
+            <i class="ph-bold ph-download text-xs"></i> Download
+          </a>
+        </div>
+
+      </div>
+
     </div>
 
-    <div class="button-group">
-      <button class="btn-preview" id="previewBtn">▶ Play From Playhead</button>
-      <button class="btn-stop" id="stopBtn">⏹ Stop</button>
-    </div>
+  </main>
 
-    <button class="btn-export" id="exportBtn">⬇ Export Cut Segment</button>
-    <button class="btn-reset" id="resetBtn">↻ Load Different File</button>
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed bottom-4 right-4 z-50 bg-slate-900 border border-slate-700 text-slate-200 px-3.5 py-2.5 rounded-xl shadow-xl flex items-center gap-2 text-xs transition transform translate-y-12 opacity-0 pointer-events-none">
+    <i id="toastIcon" class="ph-bold ph-info text-indigo-400 text-sm"></i>
+    <span id="toastMsg">Notification</span>
   </div>
 
-  <div class="status" id="status"></div>
-</div>
+  <script>
+    // State
+    const state = {
+      audioCtx: null,
+      audioBuffer: null,
+      fileName: 'audio',
+      
+      startTime: 0,
+      endTime: 0,
+      playheadTime: 0,
+      duration: 0,
 
-<script>
-  let audioCtx = null;
-  let audioBuffer = null;
-  let isDraggingPlayhead = false;
-  // Only true when playback started inside the trim range; controls auto-pause at end.
-  let isPreviewingTrim = false;
-  // Tracked so we can revoke the previous blob URL each time a new file is loaded.
-  let currentFileUrl = null;
-  // Cached peaks so colour updates on slider drag don't recompute the whole waveform.
-  let waveformPeaks = null;
-  let waveformCachedWidth = 0;
+      isPlaying: false,
+      activeSource: null,
+      activeGainNode: null,
+      playStartTime: 0,
+      playStartOffset: 0,
+      animId: null,
 
-  const audioPlayer = document.getElementById('audioPlayer');
-  const audioInput = document.getElementById('audioInput');
-  const uploadLabel = document.getElementById('uploadLabel');
-  const controls = document.getElementById('controls');
-  const timelineContainer = document.getElementById('timelineContainer');
-  const startSlider = document.getElementById('startSlider');
-  const endSlider = document.getElementById('endSlider');
-  const sliderHighlight = document.getElementById('sliderHighlight');
-  const playheadLine = document.getElementById('playheadLine');
-  const playheadHandle = document.getElementById('playheadHandle');
-  const waveformCanvas = document.getElementById('waveformCanvas');
-  const waveformCtx = waveformCanvas.getContext('2d');
-  const startVal = document.getElementById('startVal');
-  const currentVal = document.getElementById('currentVal');
-  const endVal = document.getElementById('endVal');
-  const startInput = document.getElementById('startInput');
-  const endInput = document.getElementById('endInput');
-  const fileMeta = document.getElementById('fileMeta');
-  const setStartBtn = document.getElementById('setStartBtn');
-  const setEndBtn = document.getElementById('setEndBtn');
-  const previewBtn = document.getElementById('previewBtn');
-  const stopBtn = document.getElementById('stopBtn');
-  const exportBtn = document.getElementById('exportBtn');
-  const resetBtn = document.getElementById('resetBtn');
-  const status = document.getElementById('status');
-  const startHandle = document.getElementById('startHandle');
-  const endHandle = document.getElementById('endHandle');
+      zoomLevel: 1.0,
+      peaks: null,
 
-  const MIN_GAP = 0.1; // Minimum spacing between start and end thumbs
+      isDraggingStart: false,
+      isDraggingEnd: false,
+      isDraggingPlayhead: false,
+      dragMovedPlayhead: false,
+      pointerStartX: 0,
+      pointerStartY: 0,
 
-  function setStatus(msg, isError = false) {
-    status.innerText = msg;
-    status.classList.toggle('error', !!isError);
-  }
+      exportFormat: 'mp3',
+      bitrate: 128,
+      fadeIn: 0,
+      fadeOut: 0,
+      volume: 1.0,
+      isCancelled: false
+    };
 
-  function clearFileState() {
-    audioBuffer = null;
-    waveformPeaks = null;
-    isPreviewingTrim = false;
-    if (currentFileUrl) {
-      URL.revokeObjectURL(currentFileUrl);
-      currentFileUrl = null;
+    // DOM Elements
+    const dropzoneContainer = document.getElementById('dropzoneContainer');
+    const audioFileInput = document.getElementById('audioFileInput');
+    const workspace = document.getElementById('workspace');
+
+    const slimPlayBtn = document.getElementById('slimPlayBtn');
+    const slimPlayIcon = document.getElementById('slimPlayIcon');
+    const slimPlayText = document.getElementById('slimPlayText');
+
+    const playheadTopDisplay = document.getElementById('playheadTopDisplay');
+    const totalDurationDisplay = document.getElementById('totalDurationDisplay');
+    const playStatusDot = document.getElementById('playStatusDot');
+
+    const zoomSlider = document.getElementById('zoomSlider');
+    const zoomInBtn = document.getElementById('zoomInBtn');
+    const zoomOutBtn = document.getElementById('zoomOutBtn');
+    const zoomResetBtn = document.getElementById('zoomResetBtn');
+
+    const timelineRuler = document.getElementById('timelineRuler');
+    const waveformScrollContainer = document.getElementById('waveformScrollContainer');
+    const canvasWrapper = document.getElementById('canvasWrapper');
+    const waveformCanvas = document.getElementById('waveformCanvas');
+
+    const handleStart = document.getElementById('handleStart');
+    const handleEnd = document.getElementById('handleEnd');
+    const playhead = document.getElementById('playhead');
+    const playheadGripBtn = document.getElementById('playheadGripBtn');
+    const playheadGripIcon = document.getElementById('playheadGripIcon');
+    const playheadGripText = document.getElementById('playheadGripText');
+
+    const dimLeft = document.getElementById('dimLeft');
+    const dimRight = document.getElementById('dimRight');
+    const selectedRegion = document.getElementById('selectedRegion');
+
+    const startInput = document.getElementById('startInput');
+    const endInput = document.getElementById('endInput');
+    const snapStartBtn = document.getElementById('snapStartBtn');
+    const snapEndBtn = document.getElementById('snapEndBtn');
+    const durationDisplay = document.getElementById('durationDisplay');
+    const durationSecDisplay = document.getElementById('durationSecDisplay');
+
+    const fmtMp3Btn = document.getElementById('fmtMp3Btn');
+    const fmtWavBtn = document.getElementById('fmtWavBtn');
+    const mp3RateWrapper = document.getElementById('mp3RateWrapper');
+    const bitrateSelect = document.getElementById('bitrateSelect');
+    const fadeInRange = document.getElementById('fadeInRange');
+    const fadeOutRange = document.getElementById('fadeOutRange');
+    const fadeInVal = document.getElementById('fadeInVal');
+    const fadeOutVal = document.getElementById('fadeOutVal');
+    const volumeRange = document.getElementById('volumeRange');
+    const volumeVal = document.getElementById('volumeVal');
+
+    const exportBtn = document.getElementById('exportBtn');
+    const encodingProgressWrapper = document.getElementById('encodingProgressWrapper');
+    const encodingStatusText = document.getElementById('encodingStatusText');
+    const encodingPercent = document.getElementById('encodingPercent');
+    const encodingBar = document.getElementById('encodingBar');
+    const cancelEncodeBtn = document.getElementById('cancelEncodeBtn');
+
+    const exportResultWrapper = document.getElementById('exportResultWrapper');
+    const exportSizeLabel = document.getElementById('exportSizeLabel');
+    const exportedAudio = document.getElementById('exportedAudio');
+    const downloadExportBtn = document.getElementById('downloadExportBtn');
+
+    // Toast UI
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toastMsg');
+      const toastIcon = document.getElementById('toastIcon');
+      toastMsg.textContent = msg;
+      toastIcon.className = isError ? 'ph-bold ph-warning text-rose-400 text-sm' : 'ph-bold ph-check text-emerald-400 text-sm';
+      toast.classList.remove('translate-y-12', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => toast.classList.add('translate-y-12', 'opacity-0', 'pointer-events-none'), 2800);
     }
-    audioPlayer.removeAttribute('src');
-    audioPlayer.load();
-    audioInput.value = '';
-    uploadLabel.innerText = '📁 Choose Audio File';
-    fileMeta.innerText = '';
-    controls.style.display = 'none';
-    waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
-    setStatus('');
-  }
 
-  // Handle File Upload
-  audioInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setStatus("Loading audio...");
-
-    // Revoke any previous blob URL before creating a new one so we don't leak them.
-    if (currentFileUrl) {
-      URL.revokeObjectURL(currentFileUrl);
-      currentFileUrl = null;
+    // Time Formatters
+    function formatTime(sec) {
+      if (isNaN(sec) || sec < 0) sec = 0;
+      const mins = Math.floor(sec / 60);
+      const secs = Math.floor(sec % 60);
+      const ms = Math.floor((sec - Math.floor(sec)) * 1000);
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(ms).padStart(3, '0')}`;
     }
-    currentFileUrl = URL.createObjectURL(file);
-    audioPlayer.src = currentFileUrl;
 
-    let arrayBuffer;
-    try {
-      arrayBuffer = await file.arrayBuffer();
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function parseTime(str) {
+      if (!str) return 0;
+      const clean = str.trim();
+      if (clean.includes(':')) {
+        const parts = clean.split(':');
+        const m = parseFloat(parts[0]) || 0;
+        const s = parseFloat(parts[1]) || 0;
+        return m * 60 + s;
       }
-      audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    } catch (err) {
-      console.warn('Audio decode failed:', err);
-      // Reset the file UI so the user can try again with the same/different file.
-      clearFileState();
-      setStatus("Could not decode audio file. Unsupported or corrupt format.", true);
-      return;
+      return parseFloat(clean) || 0;
     }
 
-    const duration = audioBuffer.duration;
-    startSlider.max = duration;
-    endSlider.max = duration;
-    startSlider.value = 0;
-    endSlider.value = duration;
-    startInput.max = duration;
-    endInput.max = duration;
-    startInput.value = "0.0";
-    endInput.value = duration.toFixed(1);
-
-    uploadLabel.innerText = `📄 ${file.name}`;
-    const chans = audioBuffer.numberOfChannels === 2 ? 'Stereo' : (audioBuffer.numberOfChannels === 1 ? 'Mono' : `${audioBuffer.numberOfChannels}ch`);
-    fileMeta.innerText = `${chans} · ${(audioBuffer.sampleRate / 1000).toFixed(1)} kHz · 16-bit · ${duration.toFixed(1)}s`;
-
-    updateSliderTrack();
-    setPlayheadTime(0);
-
-    controls.style.display = 'block';
-    setStatus(`Loaded: ${file.name}`);
-
-    // Defer the peak computation so the UI repaints the controls first.
-    setTimeout(() => {
-      if (audioBuffer) {
-        computeWaveformPeaks();
-        drawWaveform();
+    // Direct, Synchronous Web Audio context unlock for iOS and Android
+    function getAudioCtx() {
+      if (!state.audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        state.audioCtx = new AudioCtx();
       }
-    }, 0);
-  });
+      if (state.audioCtx.state === 'suspended') {
+        state.audioCtx.resume();
+      }
+      return state.audioCtx;
+    }
 
-  // --- Slider change handlers ---
-  startSlider.addEventListener('input', () => {
-    let v = parseFloat(startSlider.value);
-    const min = parseFloat(startSlider.min);
-    const endT = parseFloat(endSlider.value);
-    if (v > endT - MIN_GAP) v = Math.max(min, endT - MIN_GAP);
-    if (v < min) v = min;
-    startSlider.value = v;
-    startInput.value = v.toFixed(1);
-    isPreviewingTrim = false;
-    updateSliderTrack();
-  });
-
-  endSlider.addEventListener('input', () => {
-    let v = parseFloat(endSlider.value);
-    const max = parseFloat(endSlider.max);
-    const startT = parseFloat(startSlider.value);
-    if (v < startT + MIN_GAP) v = Math.min(max, startT + MIN_GAP);
-    if (v > max) v = max;
-    endSlider.value = v;
-    endInput.value = v.toFixed(1);
-    isPreviewingTrim = false;
-    updateSliderTrack();
-  });
-
-  // --- Direct numeric input sync ---
-  startInput.addEventListener('change', () => {
-    let v = parseFloat(startInput.value);
-    if (isNaN(v)) v = 0;
-    const min = parseFloat(startSlider.min);
-    const max = parseFloat(startSlider.max);
-    const endT = parseFloat(endSlider.value);
-    v = Math.max(min, Math.min(v, endT - MIN_GAP, max));
-    startSlider.value = v;
-    startInput.value = v.toFixed(1);
-    stopPreview();
-    isPreviewingTrim = false;
-    updateSliderTrack();
-  });
-  endInput.addEventListener('change', () => {
-    let v = parseFloat(endInput.value);
-    if (isNaN(v)) v = parseFloat(endInput.max);
-    const min = parseFloat(startSlider.min);
-    const max = parseFloat(endSlider.max);
-    const startT = parseFloat(startSlider.value);
-    v = Math.max(min, Math.min(v, max));
-    v = Math.max(v, startT + MIN_GAP);
-    endSlider.value = v;
-    endInput.value = v.toFixed(1);
-    stopPreview();
-    isPreviewingTrim = false;
-    updateSliderTrack();
-  });
-
-  function updateSliderTrack() {
-    const min = parseFloat(startSlider.min);
-    const max = parseFloat(startSlider.max) || 1;
-    const sNum = parseFloat(startSlider.value);
-    const eNum = parseFloat(endSlider.value);
-
-    const sPercent = ((sNum - min) / (max - min)) * 100;
-    const ePercent = ((eNum - min) / (max - min)) * 100;
-
-    sliderHighlight.style.left = sPercent + '%';
-    sliderHighlight.style.width = (ePercent - sPercent) + '%';
-
-    startVal.innerText = `${sNum.toFixed(1)}s`;
-    endVal.innerText = `${eNum.toFixed(1)}s`;
-
-    // Position the custom trim handles (round knob + thin vertical line on top).
-    if (startHandle) startHandle.style.left = sPercent + '%';
-    if (endHandle) endHandle.style.left = ePercent + '%';
-
-    drawWaveform(); // Re-paint selection colours when the trim range changes
-  }
-
-  function setPlayheadTime(timeSeconds) {
-    const max = parseFloat(startSlider.max) || 1;
-    const clampedTime = Math.max(0, Math.min(timeSeconds, max));
-    const percent = (clampedTime / max) * 100;
-
-    playheadLine.style.left = `${percent}%`;
-    playheadHandle.style.left = `${percent}%`;
-    currentVal.innerText = `${clampedTime.toFixed(1)}s`;
-
-    audioPlayer.currentTime = clampedTime;
-  }
-
-  // --- Waveform rendering ---
-  function computeWaveformPeaks() {
-    if (!audioBuffer) { waveformPeaks = null; return; }
-    const w = Math.max(1, Math.floor(timelineContainer.getBoundingClientRect().width));
-    waveformCachedWidth = w;
-
-    const channels = audioBuffer.numberOfChannels;
-    const length = audioBuffer.length;
-    const samplesPerPixel = Math.max(1, Math.floor(length / w));
-
-    waveformPeaks = new Float32Array(w);
-    for (let i = 0; i < w; i++) {
-      const start = i * samplesPerPixel;
-      const end = Math.min(start + samplesPerPixel, length);
-      let maxPeak = 0;
-      for (let c = 0; c < channels; c++) {
-        const data = audioBuffer.getChannelData(c);
-        for (let j = start; j < end; j++) {
-          const v = Math.abs(data[j]);
-          if (v > maxPeak) maxPeak = v;
+    // Attach immediate unlock handler to any mobile touch on the document
+    ['touchstart', 'touchend', 'click'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (state.audioCtx && state.audioCtx.state === 'suspended') {
+          state.audioCtx.resume();
         }
-      }
-      waveformPeaks[i] = maxPeak;
-    }
-  }
-
-  function setupWaveformCanvas() {
-    const dpr = window.devicePixelRatio || 1;
-    const w = Math.max(1, Math.floor(timelineContainer.getBoundingClientRect().width));
-    const h = Math.max(1, Math.floor(timelineContainer.getBoundingClientRect().height));
-    waveformCanvas.width = w * dpr;
-    waveformCanvas.height = h * dpr;
-    waveformCanvas.style.width = w + 'px';
-    waveformCanvas.style.height = h + 'px';
-    waveformCtx.setTransform(1, 0, 0, 1, 0, 0);
-    waveformCtx.scale(dpr, dpr);
-  }
-
-  function drawWaveform() {
-    if (!waveformPeaks) return;
-    if (waveformCanvas.width === 0) setupWaveformCanvas();
-
-    const w = waveformCachedWidth;
-    const h = waveformCanvas.getBoundingClientRect().height;
-    waveformCtx.clearRect(0, 0, waveformCanvas.width, waveformCanvas.height);
-
-    const mid = h / 2;
-    const sNum = parseFloat(startSlider.value);
-    const eNum = parseFloat(endSlider.value);
-    const max = parseFloat(startSlider.max) || 1;
-    const startX = Math.round((sNum / max) * w);
-    const endX = Math.round((eNum / max) * w);
-
-    const usable = h * 0.85;
-    for (let i = 0; i < w; i++) {
-      const peak = waveformPeaks[i] || 0;
-      const height = Math.max(1, peak * usable);
-      waveformCtx.fillStyle = (i >= startX && i <= endX) ? '#3b82f6' : '#cbd5e1';
-      waveformCtx.fillRect(i, mid - height / 2, 1, height);
-    }
-  }
-
-  // Recompute peaks on resize (debounced via rAF)
-  let resizeRaf = null;
-  window.addEventListener('resize', () => {
-    if (!audioBuffer) return;
-    if (resizeRaf) cancelAnimationFrame(resizeRaf);
-    resizeRaf = requestAnimationFrame(() => {
-      setupWaveformCanvas();
-      computeWaveformPeaks();
-      drawWaveform();
+      }, { once: true, passive: true });
     });
-  });
 
-  // --- Custom trim-handle drag (thin vertical line + round knob, replacing the wide round range thumbs) ---
-  function attachTrimHandleDrag(handleEl, sliderEl) {
-    handleEl.addEventListener('pointerdown', (e) => {
-      isPreviewingTrim = false;
-      audioPlayer.pause();
-      try { handleEl.setPointerCapture(e.pointerId); } catch (_) {}
+    // File Load Handling
+    dropzoneContainer.addEventListener('click', () => {
+      getAudioCtx();
+      audioFileInput.click();
+    });
+    dropzoneContainer.addEventListener('dragover', (e) => {
       e.preventDefault();
-      e.stopPropagation();
-
-      const rect = timelineContainer.getBoundingClientRect();
-      const min = parseFloat(sliderEl.min);
-      const max = parseFloat(sliderEl.max);
-      const step = parseFloat(sliderEl.step) || 0.1;
-      const span = max - min;
-
-      const onMove = (ev) => {
-        const x = Math.max(0, Math.min(ev.clientX - rect.left, rect.width));
-        const raw = (x / rect.width) * span + min;
-        const stepped = Math.round((raw - min) / step) * step + min;
-        const clamped = Math.max(min, Math.min(stepped, max));
-        sliderEl.value = clamped;
-        sliderEl.dispatchEvent(new Event('input', { bubbles: true }));
-      };
-      const onUp = (ev) => {
-        try { handleEl.releasePointerCapture(ev.pointerId); } catch (_) {}
-        handleEl.removeEventListener('pointermove', onMove);
-        handleEl.removeEventListener('pointerup', onUp);
-        handleEl.removeEventListener('pointercancel', onUp);
-      };
-      handleEl.addEventListener('pointermove', onMove);
-      handleEl.addEventListener('pointerup', onUp);
-      handleEl.addEventListener('pointercancel', onUp);
+      dropzoneContainer.classList.add('border-indigo-500', 'bg-slate-900/60');
     });
-  }
+    dropzoneContainer.addEventListener('dragleave', () => {
+      dropzoneContainer.classList.remove('border-indigo-500', 'bg-slate-900/60');
+    });
+    dropzoneContainer.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzoneContainer.classList.remove('border-indigo-500', 'bg-slate-900/60');
+      if (e.dataTransfer.files?.[0]) loadAudioFile(e.dataTransfer.files[0]);
+    });
+    audioFileInput.addEventListener('change', (e) => {
+      if (e.target.files?.[0]) loadAudioFile(e.target.files[0]);
+    });
 
-  attachTrimHandleDrag(startHandle, startSlider);
-  attachTrimHandleDrag(endHandle, endSlider);
+    async function loadAudioFile(file) {
+      if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(file.name)) {
+        showToast('Please open a supported audio file.', true);
+        return;
+      }
 
-  // --- Playhead drag interactions ---
-  playheadHandle.addEventListener('pointerdown', (e) => {
-    isDraggingPlayhead = true;
-    isPreviewingTrim = false;
-    audioPlayer.pause();
-    playheadHandle.setPointerCapture(e.pointerId);
-    e.stopPropagation();
-  });
+      state.fileName = file.name.replace(/\.[^/.]+$/, "");
 
-  playheadHandle.addEventListener('pointermove', (e) => {
-    if (!isDraggingPlayhead) return;
-    movePlayheadFromClientX(e.clientX);
-  });
+      try {
+        const ctx = getAudioCtx();
+        const arrayBuffer = await file.arrayBuffer();
+        showToast('Processing audio...');
+        const decoded = await ctx.decodeAudioData(arrayBuffer);
 
-  playheadHandle.addEventListener('pointerup', (e) => {
-    if (isDraggingPlayhead) {
-      isDraggingPlayhead = false;
-      playheadHandle.releasePointerCapture(e.pointerId);
-      setStatus(`Playhead set at ${audioPlayer.currentTime.toFixed(1)}s`);
-    }
-  });
+        state.audioBuffer = decoded;
+        state.duration = decoded.duration;
+        state.startTime = 0;
+        state.endTime = decoded.duration;
+        state.playheadTime = 0;
 
-  // Timeline track click support. Use closest() so events bubbling from inside a handle are also filtered.
-  timelineContainer.addEventListener('click', (e) => {
-    if (e.target.closest('.trim-handle, #startSlider, #endSlider, #playheadHandle')) return;
-    audioPlayer.pause();
-    isPreviewingTrim = false;
-    movePlayheadFromClientX(e.clientX);
-    setStatus(`Playhead set at ${audioPlayer.currentTime.toFixed(1)}s`);
-  });
+        totalDurationDisplay.textContent = formatTime(state.duration);
+        playheadTopDisplay.textContent = formatTime(0);
 
-  function movePlayheadFromClientX(clientX) {
-    const rect = timelineContainer.getBoundingClientRect();
-    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-    const percent = x / rect.width;
-    const max = parseFloat(startSlider.max) || 1;
+        computePeaks();
 
-    setPlayheadTime(percent * max);
-    setStatus(`Scrubbing: ${audioPlayer.currentTime.toFixed(1)}s`);
-  }
+        dropzoneContainer.classList.add('hidden');
+        workspace.classList.remove('hidden');
+        workspace.classList.add('flex');
 
-  // --- Set Playhead position as Start or End point ---
-  setStartBtn.addEventListener('click', () => {
-    const currentTime = audioPlayer.currentTime;
-    const endT = parseFloat(endSlider.value);
-    if (currentTime < endT - MIN_GAP) {
-      startSlider.value = currentTime;
-      startInput.value = currentTime.toFixed(1);
-      isPreviewingTrim = false;
-      updateSliderTrack();
-      setStatus(`Start point updated to ${currentTime.toFixed(1)}s`);
-    } else {
-      setStatus(`Cannot set start at or after end (${endT.toFixed(1)}s).`);
-    }
-  });
-
-  setEndBtn.addEventListener('click', () => {
-    const currentTime = audioPlayer.currentTime;
-    const startT = parseFloat(startSlider.value);
-    if (currentTime > startT + MIN_GAP) {
-      endSlider.value = currentTime;
-      endInput.value = currentTime.toFixed(1);
-      isPreviewingTrim = false;
-      updateSliderTrack();
-      setStatus(`End point updated to ${currentTime.toFixed(1)}s`);
-    } else {
-      setStatus(`Cannot set end at or before start (${startT.toFixed(1)}s).`);
-    }
-  });
-
-  // --- Playhead visual sync (during playback) ---
-  audioPlayer.addEventListener('timeupdate', () => {
-    if (!isDraggingPlayhead) {
-      const max = parseFloat(startSlider.max) || 1;
-      const percent = (audioPlayer.currentTime / max) * 100;
-      playheadLine.style.left = `${percent}%`;
-      playheadHandle.style.left = `${percent}%`;
-      currentVal.innerText = `${audioPlayer.currentTime.toFixed(1)}s`;
-
-      // Only auto-pause at trim end if playback actually started inside the trim range.
-      if (isPreviewingTrim && audioPlayer.currentTime >= parseFloat(endSlider.value) && !audioPlayer.paused) {
-        isPreviewingTrim = false;
-        stopPreview();
-        setStatus("Reached end of trim range.");
+        updateDimensions();
+        updateTimeInputs();
+        showToast('Audio loaded!');
+      } catch (err) {
+        console.error(err);
+        showToast('Error decoding audio: ' + err.message, true);
       }
     }
-  });
 
-  // When playback ends naturally, clear our preview flag too.
-  audioPlayer.addEventListener('ended', () => {
-    isPreviewingTrim = false;
-  });
+    function computePeaks() {
+      if (!state.audioBuffer) return;
+      const data = state.audioBuffer.getChannelData(0);
+      const total = data.length;
+      const buckets = 2800;
+      const step = Math.ceil(total / buckets);
+      const peaks = new Float32Array(buckets * 2);
 
-  // --- Play from playhead ---
-  previewBtn.addEventListener('click', async () => {
-    const start = parseFloat(startSlider.value);
-    const end = parseFloat(endSlider.value);
-    const t = audioPlayer.currentTime;
-    // Only mark this as a "trim preview" when we actually started inside the trim range.
-    isPreviewingTrim = (t >= start && t < end - 0.01);
-    try {
-      await audioPlayer.play();
-      setStatus(isPreviewingTrim ? "Previewing trim region..." : "Playing audio...");
-    } catch (err) {
-      console.warn('Audio playback failed:', err);
-      setStatus("Click Play again.");
-    }
-  });
-
-  stopBtn.addEventListener('click', () => {
-    isPreviewingTrim = false;
-    stopPreview();
-    setStatus("Playback stopped.");
-  });
-
-  function stopPreview() {
-    audioPlayer.pause();
-  }
-
-  // --- Reset / load different file ---
-  resetBtn.addEventListener('click', () => {
-    clearFileState();
-  });
-
-  // --- Export trimmed audio as WAV (with short fade in/out to prevent boundary clicks) ---
-  exportBtn.addEventListener('click', () => {
-    stopPreview();
-    isPreviewingTrim = false;
-
-    const start = parseFloat(startSlider.value);
-    const end = parseFloat(endSlider.value);
-    const trimmedDuration = end - start;
-    if (trimmedDuration <= 0) {
-      setStatus("Trim range is empty.", true);
-      return;
-    }
-
-    setStatus("Processing export...");
-
-    const sampleRate = audioBuffer.sampleRate;
-    const channels = audioBuffer.numberOfChannels;
-    const startOffset = Math.floor(start * sampleRate);
-    const frameCount = Math.floor(trimmedDuration * sampleRate);
-
-    const trimmedBuffer = audioCtx.createBuffer(channels, frameCount, sampleRate);
-
-    // Short fade in/out (~10ms) to prevent audible boundary clicks at the trim edges.
-    const fadeSamples = Math.min(frameCount, Math.floor(0.01 * sampleRate));
-    for (let c = 0; c < channels; c++) {
-      const channelData = audioBuffer.getChannelData(c);
-      const trimmedData = trimmedBuffer.getChannelData(c);
-      for (let i = 0; i < frameCount; i++) {
-        let s = channelData[startOffset + i];
-        if (i < fadeSamples) {
-          s *= i / fadeSamples;
-        } else if (i >= frameCount - fadeSamples && frameCount > fadeSamples) {
-          s *= (frameCount - 1 - i) / fadeSamples;
+      for (let i = 0; i < buckets; i++) {
+        let min = 1.0;
+        let max = -1.0;
+        const start = i * step;
+        const end = Math.min(start + step, total);
+        for (let j = start; j < end; j += 4) {
+          const v = data[j];
+          if (v < min) min = v;
+          if (v > max) max = v;
         }
-        trimmedData[i] = s;
+        peaks[i * 2] = min === 1.0 ? 0 : min;
+        peaks[i * 2 + 1] = max === -1.0 ? 0 : max;
+      }
+      state.peaks = peaks;
+    }
+
+    function updateDimensions() {
+      if (!state.audioBuffer) return;
+      const containerW = waveformScrollContainer.clientWidth;
+      const zoomedW = Math.max(containerW, containerW * state.zoomLevel);
+
+      canvasWrapper.style.width = `${zoomedW}px`;
+      
+      const dpr = window.devicePixelRatio || 1;
+      waveformCanvas.width = zoomedW * dpr;
+      waveformCanvas.height = canvasWrapper.clientHeight * dpr;
+
+      const ctx = waveformCanvas.getContext('2d');
+      ctx.resetTransform?.();
+      ctx.scale(dpr, dpr);
+
+      renderTimeline(zoomedW);
+      drawWaveform();
+      positionMarkers();
+      positionPlayhead();
+    }
+
+    function renderTimeline(width) {
+      timelineRuler.innerHTML = '';
+      if (!state.audioBuffer) return;
+      const dur = state.duration;
+      let stepSec = 5;
+      if (state.zoomLevel >= 6) stepSec = 0.5;
+      else if (state.zoomLevel >= 3) stepSec = 1;
+      else if (dur > 180) stepSec = 20;
+
+      const count = Math.floor(dur / stepSec);
+      for (let i = 0; i <= count; i++) {
+        const s = i * stepSec;
+        const tick = document.createElement('div');
+        tick.className = 'absolute top-0 bottom-0 border-l border-slate-800 pl-1 select-none pointer-events-none';
+        tick.style.left = `${(s / dur) * 100}%`;
+        tick.textContent = formatTime(s).slice(0, 5);
+        timelineRuler.appendChild(tick);
       }
     }
 
-    const wavBlob = bufferToWav(trimmedBuffer);
-    const url = URL.createObjectURL(wavBlob);
+    function drawWaveform() {
+      if (!state.peaks) return;
+      const ctx = waveformCanvas.getContext('2d');
+      const w = canvasWrapper.clientWidth;
+      const h = canvasWrapper.clientHeight;
+      const cy = h / 2;
 
-    // Use original filename with the trim range appended so users keep their naming.
-    const originalName = (audioInput.files && audioInput.files[0] && audioInput.files[0].name) || 'audio.wav';
-    const base = (originalName.replace(/\.[^/.]+$/, '') || 'trimmed');
-    const filename = `${base}_${start.toFixed(1)}s-${end.toFixed(1)}s.wav`;
+      ctx.clearRect(0, 0, w, h);
 
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+      ctx.strokeStyle = 'rgba(51, 65, 85, 0.4)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(0, cy);
+      ctx.lineTo(w, cy);
+      ctx.stroke();
 
-    // Free the blob URL after the download has had time to start.
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+      const gradient = ctx.createLinearGradient(0, 0, 0, h);
+      gradient.addColorStop(0, '#818cf8');
+      gradient.addColorStop(0.5, '#4f46e5');
+      gradient.addColorStop(1, '#818cf8');
+      ctx.fillStyle = gradient;
 
-    setStatus(`Export complete: ${filename}`);
-  });
+      const totalBuckets = state.peaks.length / 2;
+      const barW = 2;
+      const gap = 1;
+      const step = barW + gap;
+      const numBars = Math.floor(w / step);
 
-  // Helper function to encode Web Audio buffer into a downloadable WAV file.
-  // Note: WAV RIFF/data chunk sizes are unsigned 32-bit, so files beyond ~4GB cannot
-  // be encoded (a limit of the format itself, not a bug here).
-  function bufferToWav(abuffer) {
-    let numOfChan = abuffer.numberOfChannels,
-        length = abuffer.length * numOfChan * 2 + 44,
-        buffer = new ArrayBuffer(length),
-        view = new DataView(buffer),
-        channels = [], i, sample,
-        offset = 0,
-        pos = 0;
+      for (let i = 0; i < numBars; i++) {
+        const idx = Math.floor((i / numBars) * totalBuckets);
+        const min = state.peaks[idx * 2];
+        const max = state.peaks[idx * 2 + 1];
 
-    function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
-    function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
-
-    setUint32(0x46464952);                         // "RIFF"
-    setUint32(length - 8);                         // file length - 8
-    setUint32(0x45564157);                         // "WAVE"
-    setUint32(0x20746d66);                         // "fmt " chunk
-    setUint32(16);                                 // length = 16
-    setUint16(1);                                  // PCM (uncompressed)
-    setUint16(numOfChan);
-    setUint32(abuffer.sampleRate);
-    setUint32(abuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-    setUint16(numOfChan * 2);                      // block-align
-    setUint16(16);                                 // 16-bit
-    setUint32(0x61746164);                         // "data" chunk
-    setUint32(length - pos - 4);                   // chunk length
-
-    for(i = 0; i < abuffer.numberOfChannels; i++)
-      channels.push(abuffer.getChannelData(i));
-
-    while(pos < length) {
-      for(i = 0; i < numOfChan; i++) {
-        sample = Math.max(-1, Math.min(1, channels[i][offset]));
-        sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767)|0;
-        view.setInt16(pos, sample, true);
-        pos += 2;
+        const x = i * step;
+        const barH = Math.max(2, (max - min) * (cy * 0.9));
+        ctx.fillRect(x, cy - (barH / 2), barW, barH);
       }
-      offset++;
     }
 
-    return new Blob([buffer], { type: "audio/wav" });
-  }
-</script>
+    function positionMarkers() {
+      if (!state.audioBuffer || state.duration <= 0) return;
+      const totalW = canvasWrapper.clientWidth;
+      const startPx = Math.max(0, Math.min(totalW, (state.startTime / state.duration) * totalW));
+      const endPx = Math.max(0, Math.min(totalW, (state.endTime / state.duration) * totalW));
 
+      handleStart.style.left = `${startPx}px`;
+      handleEnd.style.left = `${endPx}px`;
+
+      dimLeft.style.width = `${startPx}px`;
+      selectedRegion.style.left = `${startPx}px`;
+      selectedRegion.style.width = `${Math.max(0, endPx - startPx)}px`;
+
+      dimRight.style.left = `${endPx}px`;
+      dimRight.style.width = `${Math.max(0, totalW - endPx)}px`;
+    }
+
+    function positionPlayhead() {
+      if (!state.audioBuffer || state.duration <= 0) return;
+      const totalW = canvasWrapper.clientWidth;
+      const playPx = Math.max(0, Math.min(totalW, (state.playheadTime / state.duration) * totalW));
+      playhead.style.left = `${playPx}px`;
+      playheadTopDisplay.textContent = formatTime(state.playheadTime);
+    }
+
+    function updateTimeInputs() {
+      startInput.value = formatTime(state.startTime);
+      endInput.value = formatTime(state.endTime);
+
+      const selDur = Math.max(0, state.endTime - state.startTime);
+      durationDisplay.textContent = formatTime(selDur);
+      durationSecDisplay.textContent = `${selDur.toFixed(2)}s`;
+    }
+
+    // Playback Engine
+    async function togglePlayheadPlayback() {
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
+      if (state.isPlaying) {
+        pausePlayback();
+      } else {
+        startPlayback(state.playheadTime);
+      }
+    }
+
+    function startPlayback(fromTime) {
+      if (!state.audioBuffer) return;
+      pausePlayback();
+
+      const ctx = getAudioCtx();
+      if (ctx.state === 'suspended') {
+        ctx.resume();
+      }
+
+      const src = ctx.createBufferSource();
+      src.buffer = state.audioBuffer;
+
+      const gain = ctx.createGain();
+      gain.gain.value = state.volume;
+
+      src.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (fromTime >= state.duration) fromTime = 0;
+      const remaining = state.duration - fromTime;
+
+      src.start(0, fromTime, remaining);
+      state.activeSource = src;
+      state.activeGainNode = gain;
+      state.isPlaying = true;
+      state.playStartTime = ctx.currentTime;
+      state.playStartOffset = fromTime;
+
+      // Update both Playhead Handle and Slim Top Play Button
+      playheadGripIcon.className = 'ph-fill ph-pause text-xs';
+      playheadGripText.textContent = 'PAUSE';
+      playheadGripBtn.classList.add('ring-2', 'ring-amber-300', 'animate-pulse');
+
+      slimPlayIcon.className = 'ph-fill ph-pause text-xs';
+      slimPlayText.textContent = 'PAUSE';
+      slimPlayBtn.classList.add('ring-2', 'ring-amber-300');
+
+      playStatusDot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+
+      src.onended = () => {
+        if (state.isPlaying) {
+          pausePlayback();
+          state.playheadTime = state.duration;
+          positionPlayhead();
+        }
+      };
+
+      const track = () => {
+        if (!state.isPlaying) return;
+        const elapsed = ctx.currentTime - state.playStartTime;
+        const curr = state.playStartOffset + elapsed;
+
+        if (curr >= state.duration) {
+          pausePlayback();
+          state.playheadTime = state.duration;
+          positionPlayhead();
+          return;
+        }
+
+        state.playheadTime = curr;
+        positionPlayhead();
+        state.animId = requestAnimationFrame(track);
+      };
+      state.animId = requestAnimationFrame(track);
+    }
+
+    function pausePlayback() {
+      if (state.activeSource) {
+        try {
+          state.activeSource.stop();
+          state.activeSource.disconnect();
+        } catch (_) {}
+        state.activeSource = null;
+      }
+      if (state.activeGainNode) {
+        try {
+          state.activeGainNode.disconnect();
+        } catch (_) {}
+        state.activeGainNode = null;
+      }
+
+      state.isPlaying = false;
+      playheadGripIcon.className = 'ph-fill ph-play text-xs';
+      playheadGripText.textContent = 'PLAY';
+      playheadGripBtn.classList.remove('ring-2', 'ring-amber-300', 'animate-pulse');
+
+      slimPlayIcon.className = 'ph-fill ph-play text-xs';
+      slimPlayText.textContent = 'PLAY';
+      slimPlayBtn.classList.remove('ring-2', 'ring-amber-300');
+
+      playStatusDot.className = 'w-2 h-2 rounded-full bg-amber-400';
+
+      if (state.animId) cancelAnimationFrame(state.animId);
+    }
+
+    // Top Slim Play/Pause Button
+    slimPlayBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      togglePlayheadPlayback();
+    });
+
+    // Touch & Pointer Handling with 6px threshold
+    function initPlayheadPointer(e) {
+      e.stopPropagation();
+      getAudioCtx();
+
+      state.isDraggingPlayhead = true;
+      state.dragMovedPlayhead = false;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      state.pointerStartX = clientX;
+      state.pointerStartY = clientY;
+
+      window.addEventListener('mousemove', onGlobalPointerMove);
+      window.addEventListener('mouseup', onGlobalPointerUp);
+      window.addEventListener('touchmove', onGlobalPointerMove, { passive: false });
+      window.addEventListener('touchend', onGlobalPointerUp);
+    }
+
+    playheadGripBtn.addEventListener('mousedown', initPlayheadPointer);
+    playheadGripBtn.addEventListener('touchstart', initPlayheadPointer, { passive: false });
+
+    // Start / End Handle drag
+    handleStart.querySelector('.top-grip-emerald').addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      getAudioCtx();
+      state.isDraggingStart = true;
+      window.addEventListener('mousemove', onGlobalPointerMove);
+      window.addEventListener('mouseup', onGlobalPointerUp);
+    });
+    handleStart.querySelector('.top-grip-emerald').addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      getAudioCtx();
+      state.isDraggingStart = true;
+      window.addEventListener('touchmove', onGlobalPointerMove, { passive: false });
+      window.addEventListener('touchend', onGlobalPointerUp);
+    });
+
+    handleEnd.querySelector('.top-grip-rose').addEventListener('mousedown', (e) => {
+      e.stopPropagation();
+      getAudioCtx();
+      state.isDraggingEnd = true;
+      window.addEventListener('mousemove', onGlobalPointerMove);
+      window.addEventListener('mouseup', onGlobalPointerUp);
+    });
+    handleEnd.querySelector('.top-grip-rose').addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      getAudioCtx();
+      state.isDraggingEnd = true;
+      window.addEventListener('touchmove', onGlobalPointerMove, { passive: false });
+      window.addEventListener('touchend', onGlobalPointerUp);
+    });
+
+    function getPointerTime(e) {
+      const rect = canvasWrapper.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+      return ratio * state.duration;
+    }
+
+    function onGlobalPointerMove(e) {
+      if (!state.isDraggingStart && !state.isDraggingEnd && !state.isDraggingPlayhead) return;
+      
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+
+      if (state.isDraggingPlayhead && !state.dragMovedPlayhead) {
+        const dx = Math.abs(clientX - state.pointerStartX);
+        const dy = Math.abs(clientY - state.pointerStartY);
+        if (dx > 6 || dy > 6) {
+          state.dragMovedPlayhead = true;
+        }
+      }
+
+      const t = getPointerTime(e);
+
+      if (state.isDraggingStart) {
+        state.startTime = Math.max(0, Math.min(t, state.endTime - 0.05));
+        positionMarkers();
+        updateTimeInputs();
+      } else if (state.isDraggingEnd) {
+        state.endTime = Math.min(state.duration, Math.max(t, state.startTime + 0.05));
+        positionMarkers();
+        updateTimeInputs();
+      } else if (state.isDraggingPlayhead && state.dragMovedPlayhead) {
+        state.playheadTime = Math.max(0, Math.min(state.duration, t));
+        positionPlayhead();
+        if (state.isPlaying) startPlayback(state.playheadTime);
+      }
+    }
+
+    function onGlobalPointerUp() {
+      if (state.isDraggingPlayhead && !state.dragMovedPlayhead) {
+        togglePlayheadPlayback();
+      }
+
+      state.isDraggingStart = false;
+      state.isDraggingEnd = false;
+      state.isDraggingPlayhead = false;
+      window.removeEventListener('mousemove', onGlobalPointerMove);
+      window.removeEventListener('mouseup', onGlobalPointerUp);
+      window.removeEventListener('touchmove', onGlobalPointerMove);
+      window.removeEventListener('touchend', onGlobalPointerUp);
+    }
+
+    // Direct click anywhere on waveform jumps playhead
+    canvasWrapper.addEventListener('click', (e) => {
+      if (state.isDraggingStart || state.isDraggingEnd || state.isDraggingPlayhead) return;
+      if (e.target.closest('.top-grip-emerald') || e.target.closest('.top-grip-rose') || e.target.closest('.bottom-grip-amber')) return;
+
+      getAudioCtx();
+      const t = getPointerTime(e);
+      state.playheadTime = t;
+      positionPlayhead();
+      if (state.isPlaying) startPlayback(t);
+    });
+
+    // Spacebar toggles Playhead Playback
+    window.addEventListener('keydown', (e) => {
+      if (['INPUT', 'SELECT'].includes(document.activeElement.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayheadPlayback();
+      }
+    });
+
+    // Manual Time Input Editing
+    startInput.addEventListener('change', () => {
+      const val = parseTime(startInput.value);
+      state.startTime = Math.max(0, Math.min(val, state.endTime - 0.05));
+      positionMarkers();
+      updateTimeInputs();
+    });
+    startInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') startInput.blur();
+    });
+
+    endInput.addEventListener('change', () => {
+      const val = parseTime(endInput.value);
+      state.endTime = Math.min(state.duration, Math.max(val, state.startTime + 0.05));
+      positionMarkers();
+      updateTimeInputs();
+    });
+    endInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') endInput.blur();
+    });
+
+    // Snap to Playhead buttons
+    snapStartBtn.addEventListener('click', () => {
+      if (!state.audioBuffer) return;
+      if (state.playheadTime >= state.endTime) {
+        showToast('Start cannot be after End marker.', true);
+        return;
+      }
+      state.startTime = state.playheadTime;
+      positionMarkers();
+      updateTimeInputs();
+      showToast('Start set to playhead');
+    });
+
+    snapEndBtn.addEventListener('click', () => {
+      if (!state.audioBuffer) return;
+      if (state.playheadTime <= state.startTime) {
+        showToast('End cannot be before Start marker.', true);
+        return;
+      }
+      state.endTime = state.playheadTime;
+      positionMarkers();
+      updateTimeInputs();
+      showToast('End set to playhead');
+    });
+
+    // Zoom Controls
+    function setZoom(lvl) {
+      state.zoomLevel = Math.max(1, Math.min(10, lvl));
+      zoomSlider.value = state.zoomLevel;
+      updateDimensions();
+    }
+    zoomSlider.addEventListener('input', (e) => setZoom(parseFloat(e.target.value)));
+    zoomInBtn.addEventListener('click', () => setZoom(state.zoomLevel + 0.8));
+    zoomOutBtn.addEventListener('click', () => setZoom(state.zoomLevel - 0.8));
+    zoomResetBtn.addEventListener('click', () => setZoom(1));
+    window.addEventListener('resize', () => {
+      if (state.audioBuffer) updateDimensions();
+    });
+
+    // Format & Options
+    fmtMp3Btn.addEventListener('click', () => {
+      state.exportFormat = 'mp3';
+      fmtMp3Btn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition';
+      fmtWavBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
+      mp3RateWrapper.classList.remove('opacity-30', 'pointer-events-none');
+    });
+
+    fmtWavBtn.addEventListener('click', () => {
+      state.exportFormat = 'wav';
+      fmtWavBtn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition';
+      fmtMp3Btn.className = 'px-3 py-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition';
+      mp3RateWrapper.classList.add('opacity-30', 'pointer-events-none');
+    });
+
+    bitrateSelect.addEventListener('change', (e) => {
+      state.bitrate = parseInt(e.target.value, 10);
+    });
+
+    fadeInRange.addEventListener('input', (e) => {
+      state.fadeIn = parseFloat(e.target.value);
+      fadeInVal.textContent = `${state.fadeIn}s`;
+    });
+    fadeOutRange.addEventListener('input', (e) => {
+      state.fadeOut = parseFloat(e.target.value);
+      fadeOutVal.textContent = `${state.fadeOut}s`;
+    });
+
+    volumeRange.addEventListener('input', (e) => {
+      state.volume = parseFloat(e.target.value);
+      volumeVal.textContent = `${Math.round(state.volume * 100)}%`;
+      if (state.activeGainNode && state.audioCtx) {
+        state.activeGainNode.gain.setValueAtTime(state.volume, state.audioCtx.currentTime);
+      }
+    });
+
+    cancelEncodeBtn.addEventListener('click', () => {
+      state.isCancelled = true;
+      showToast('Encoding cancelled.', true);
+    });
+
+    // Extraction with Fade In/Out and Volume Scaling
+    async function extractTrimmedData(targetBitrate) {
+      const buf = state.audioBuffer;
+      const rate = buf.sampleRate;
+      const channels = buf.numberOfChannels;
+
+      const sSample = Math.floor(state.startTime * rate);
+      const eSample = Math.min(buf.length, Math.floor(state.endTime * rate));
+      const len = Math.max(1, eSample - sSample);
+
+      const fInSamples = Math.min(len / 2, Math.floor(state.fadeIn * rate));
+      const fOutSamples = Math.min(len / 2, Math.floor(state.fadeOut * rate));
+
+      const tmpCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: rate });
+      const sliceBuf = tmpCtx.createBuffer(channels, len, rate);
+
+      for (let ch = 0; ch < channels; ch++) {
+        const raw = buf.getChannelData(ch);
+        const out = sliceBuf.getChannelData(ch);
+        for (let i = 0; i < len; i++) {
+          let s = raw[sSample + i] * state.volume;
+          if (fInSamples > 0 && i < fInSamples) s *= (i / fInSamples);
+          const rem = len - 1 - i;
+          if (fOutSamples > 0 && rem < fOutSamples) s *= (rem / fOutSamples);
+          out[i] = s;
+        }
+      }
+
+      // Safe low-rate resampling for lamejs (MPEG-2/2.5 constraints)
+      let reqRate = rate;
+      let forceMono = false;
+
+      if (state.exportFormat === 'mp3') {
+        if (targetBitrate === 16) {
+          reqRate = 16000;
+          forceMono = true;
+        } else if (targetBitrate === 32) {
+          reqRate = 22050;
+          forceMono = true;
+        } else if (targetBitrate <= 64 && rate > 44100) {
+          reqRate = 44100;
+        }
+      }
+
+      if (reqRate !== rate || (forceMono && channels > 1)) {
+        const outCh = forceMono ? 1 : channels;
+        const frames = Math.ceil(sliceBuf.duration * reqRate);
+        const offCtx = new OfflineAudioContext(outCh, frames, reqRate);
+        const sNode = offCtx.createBufferSource();
+        sNode.buffer = sliceBuf;
+        sNode.connect(offCtx.destination);
+        sNode.start(0);
+
+        const rendered = await offCtx.startRendering();
+        const chList = [];
+        for (let c = 0; c < rendered.numberOfChannels; c++) {
+          chList.push(rendered.getChannelData(c));
+        }
+        return {
+          channels: chList,
+          sampleRate: rendered.sampleRate,
+          length: rendered.length,
+          numChannels: rendered.numberOfChannels
+        };
+      }
+
+      const chList = [];
+      for (let c = 0; c < channels; c++) {
+        chList.push(sliceBuf.getChannelData(c));
+      }
+      return {
+        channels: chList,
+        sampleRate: rate,
+        length: len,
+        numChannels: channels
+      };
+    }
+
+    function floatToInt16(fArray) {
+      const i16 = new Int16Array(fArray.length);
+      for (let i = 0; i < fArray.length; i++) {
+        const s = Math.max(-1, Math.min(1, fArray[i]));
+        i16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+      }
+      return i16;
+    }
+
+    // WAV Encoder
+    function encodeWav(audio) {
+      const { channels, sampleRate, length, numChannels } = audio;
+      const blockAlign = numChannels * 2;
+      const dataSize = length * blockAlign;
+      const buffer = new ArrayBuffer(44 + dataSize);
+      const view = new DataView(buffer);
+
+      function write(offset, str) {
+        for (let i = 0; i < str.length; i++) view.setUint8(offset + i, str.charCodeAt(i));
+      }
+
+      write(0, 'RIFF');
+      view.setUint32(4, 36 + dataSize, true);
+      write(8, 'WAVE');
+      write(12, 'fmt ');
+      view.setUint32(16, 16, true);
+      view.setUint16(20, 1, true);
+      view.setUint16(22, numChannels, true);
+      view.setUint32(24, sampleRate, true);
+      view.setUint32(28, sampleRate * blockAlign, true);
+      view.setUint16(32, blockAlign, true);
+      view.setUint16(34, 16, true);
+      write(36, 'data');
+      view.setUint32(40, dataSize, true);
+
+      let offset = 44;
+      for (let i = 0; i < length; i++) {
+        for (let ch = 0; ch < numChannels; ch++) {
+          const s = Math.max(-1, Math.min(1, channels[ch][i]));
+          view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+          offset += 2;
+        }
+      }
+      return new Blob([buffer], { type: 'audio/wav' });
+    }
+
+    // MP3 Encoder
+    async function encodeMp3(audio, bitrate) {
+      state.isCancelled = false;
+      const { channels, sampleRate, length, numChannels } = audio;
+      const enc = new lamejs.Mp3Encoder(numChannels, sampleRate, bitrate);
+      const chunks = [];
+
+      const left16 = floatToInt16(channels[0]);
+      const right16 = numChannels > 1 ? floatToInt16(channels[1]) : null;
+
+      const blockSize = 1152;
+      const totalBlocks = Math.ceil(length / blockSize);
+
+      return new Promise((resolve, reject) => {
+        let b = 0;
+        function loop() {
+          if (state.isCancelled) return reject(new Error('Export cancelled'));
+          const s = b * blockSize;
+          const e = Math.min(s + blockSize, length);
+
+          const lChunk = left16.subarray(s, e);
+          let buf;
+          if (numChannels === 1) {
+            buf = enc.encodeBuffer(lChunk);
+          } else {
+            buf = enc.encodeBuffer(lChunk, right16.subarray(s, e));
+          }
+
+          if (buf && buf.length > 0) chunks.push(buf);
+          b++;
+
+          const pct = Math.min(99, Math.round((b / totalBlocks) * 100));
+          encodingPercent.textContent = `${pct}%`;
+          encodingBar.style.width = `${pct}%`;
+
+          if (b < totalBlocks) {
+            if (b % 25 === 0) setTimeout(loop, 0);
+            else loop();
+          } else {
+            const flush = enc.flush();
+            if (flush && flush.length > 0) chunks.push(flush);
+            encodingPercent.textContent = '100%';
+            encodingBar.style.width = '100%';
+            resolve(new Blob(chunks, { type: 'audio/mp3' }));
+          }
+        }
+        loop();
+      });
+    }
+
+    // Export Trigger
+    exportBtn.addEventListener('click', async () => {
+      if (!state.audioBuffer) return;
+      pausePlayback();
+
+      const outName = `${state.fileName}-trimmed.${state.exportFormat}`;
+      exportBtn.disabled = true;
+      exportResultWrapper.classList.add('hidden');
+      encodingProgressWrapper.classList.remove('hidden');
+      encodingBar.style.width = '0%';
+      encodingPercent.textContent = '0%';
+
+      try {
+        const audioData = await extractTrimmedData(state.bitrate);
+        let blob;
+
+        if (state.exportFormat === 'wav') {
+          encodingStatusText.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Writing WAV...`;
+          blob = encodeWav(audioData);
+          encodingBar.style.width = '100%';
+          encodingPercent.textContent = '100%';
+        } else {
+          encodingStatusText.innerHTML = `<i class="ph-bold ph-spinner animate-spin"></i> Encoding MP3 (${state.bitrate} kbps)...`;
+          blob = await encodeMp3(audioData, state.bitrate);
+        }
+
+        const url = URL.createObjectURL(blob);
+        exportedAudio.src = url;
+        downloadExportBtn.href = url;
+        downloadExportBtn.download = outName;
+        exportSizeLabel.textContent = `${(blob.size / 1024).toFixed(1)} KB`;
+        exportResultWrapper.classList.remove('hidden');
+
+        // Trigger direct download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = outName;
+        a.click();
+
+        showToast(`Exported ${outName}`);
+      } catch (err) {
+        showToast(err.message, true);
+      } finally {
+        exportBtn.disabled = false;
+        setTimeout(() => encodingProgressWrapper.classList.add('hidden'), 1000);
+      }
+    });
+
+  </script>
 </body>
 </html>
