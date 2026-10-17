@@ -1,0 +1,28 @@
+npm warn exec The following package was not found and will be installed: expo@58.0.12
+npm error code EACCES
+npm error syscall spawn C:\Windows\system32\cmd.exe
+npm error path C:\Users\ezsha\Github\Audio Trimmer
+npm error errno -4092
+npm error Error: spawn C:\Windows\system32\cmd.exe EACCES
+npm error     at ChildProcess._handle.onexit (node:internal/child_process:287:19)
+npm error     at onErrorNT (node:internal/child_process:508:16)
+npm error     at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+npm error   errno: -4092,
+npm error   code: 'EACCES',
+npm error   syscall: 'spawn C:\\Windows\\system32\\cmd.exe',
+npm error   path: 'C:\\Users\\ezsha\\Github\\Audio Trimmer',
+npm error   spawnargs: [ '/d', '/s', '/c', 'expo run:android --no-install' ],
+npm error   cmd: 'C:\\Windows\\system32\\cmd.exe',
+npm error   args: [ '/d', '/s', '/c', 'expo run:android --no-install' ],
+npm error   stdout: null,
+npm error   stderr: null,
+npm error   event: 'npx',
+npm error   script: 'expo',
+npm error   pkgid: 'lecture-recorder@1.0.0'
+npm error }
+npm error
+npm error The operation was rejected by your operating system.
+npm error It's possible that the file was already in use (by a text editor or antivirus), or that you lack permissions to access it.
+npm error
+npm error If you believe this might be a permissions issue, please double-check the permissions of the file and its containing directories, or try running the command again as root/Administrator.
+npm error A complete log of this run can be found in: C:\Users\ezsha\AppData\Local\npm-cache\_logs\2026-10-16T09_06_48_206Z-debug-0.log
