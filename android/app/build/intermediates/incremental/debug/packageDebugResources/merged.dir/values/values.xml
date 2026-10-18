@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="accent">#5C4FEE</color>
+    <color name="background">#070913</color>
+    <color name="border">#1E2746</color>
+    <color name="surface">#0E1324</color>
+    <color name="surface_raised">#151C33</color>
+    <color name="text_main">#F8FAFC</color>
+    <color name="text_muted">#94A3B8</color>
+    <color name="warning">#F50ACE</color>
+    <string name="app_name">Clean Audio Trimmer</string>
+    <style name="Theme.CleanAudioTrimmer" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">false</item>
+        
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorSecondary">@color/warning</item>
+    </style>
+</resources>

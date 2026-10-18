@@ -1,0 +1,169 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.cleanaudiotrimmer.app"
+4    android:versionCode="1"
+5    android:versionName="1.0.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="24"
+9        android:targetSdkVersion="35" />
+10
+11    <uses-permission android:name="android.permission.INTERNET" />
+11-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:5:5-67
+11-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:5:22-64
+12    <uses-permission
+12-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:6:5-107
+13        android:name="android.permission.READ_EXTERNAL_STORAGE"
+13-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:6:22-77
+14        android:maxSdkVersion="32" />
+14-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:6:78-104
+15    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+15-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:7:5-75
+15-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:7:22-72
+16    <uses-permission
+16-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:8:5-137
+17        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+17-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:8:22-78
+18        android:maxSdkVersion="28" />
+18-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:8:79-105
+19
+20    <permission
+20-->[androidx.core:core:1.13.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\23e99248d64d12abaac09e0394e604c9\workspace\transformed\core-1.13.0\AndroidManifest.xml:22:5-24:47
+21        android:name="com.cleanaudiotrimmer.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+21-->[androidx.core:core:1.13.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\23e99248d64d12abaac09e0394e604c9\workspace\transformed\core-1.13.0\AndroidManifest.xml:23:9-81
+22        android:protectionLevel="signature" />
+22-->[androidx.core:core:1.13.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\23e99248d64d12abaac09e0394e604c9\workspace\transformed\core-1.13.0\AndroidManifest.xml:24:9-44
+23
+24    <uses-permission android:name="com.cleanaudiotrimmer.app.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+24-->[androidx.core:core:1.13.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\23e99248d64d12abaac09e0394e604c9\workspace\transformed\core-1.13.0\AndroidManifest.xml:26:5-97
+24-->[androidx.core:core:1.13.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\23e99248d64d12abaac09e0394e604c9\workspace\transformed\core-1.13.0\AndroidManifest.xml:26:22-94
+25
+26    <application
+26-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:10:5-40:19
+27        android:allowBackup="true"
+27-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:11:9-35
+28        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+28-->[androidx.core:core:1.13.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\23e99248d64d12abaac09e0394e604c9\workspace\transformed\core-1.13.0\AndroidManifest.xml:28:18-86
+29        android:debuggable="true"
+30        android:extractNativeLibs="false"
+31        android:hardwareAccelerated="true"
+31-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:17:9-43
+32        android:icon="@mipmap/ic_launcher"
+32-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:12:9-43
+33        android:label="@string/app_name"
+33-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:13:9-41
+34        android:requestLegacyExternalStorage="true"
+34-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:18:9-52
+35        android:roundIcon="@mipmap/ic_launcher_round"
+35-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:14:9-54
+36        android:supportsRtl="true"
+36-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:15:9-35
+37        android:theme="@style/Theme.CleanAudioTrimmer" >
+37-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:16:9-55
+38        <provider
+39            android:name="androidx.core.content.FileProvider"
+39-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:21:13-62
+40            android:authorities="com.cleanaudiotrimmer.app.fileprovider"
+40-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:22:13-64
+41            android:exported="false"
+41-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:23:13-37
+42            android:grantUriPermissions="true" >
+42-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:24:13-47
+43            <meta-data
+43-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:25:13-27:54
+44                android:name="android.support.FILE_PROVIDER_PATHS"
+44-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:26:17-67
+45                android:resource="@xml/file_paths" />
+45-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:27:17-51
+46        </provider>
+47
+48        <activity
+48-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:30:9-39:20
+49            android:name="com.cleanaudiotrimmer.app.MainActivity"
+49-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:31:13-41
+50            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+50-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:33:13-87
+51            android:exported="true"
+51-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:32:13-36
+52            android:windowSoftInputMode="adjustResize" >
+52-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:34:13-55
+53            <intent-filter>
+53-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:35:13-38:29
+54                <action android:name="android.intent.action.MAIN" />
+54-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:36:17-69
+54-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:36:25-66
+55
+56                <category android:name="android.intent.category.LAUNCHER" />
+56-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:37:17-77
+56-->C:\Users\ezsha\Github\Audio Trimmer\android\app\src\main\AndroidManifest.xml:37:27-74
+57            </intent-filter>
+58        </activity>
+59
+60        <provider
+60-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\e397624de525beb6947e41b51d2f7237\workspace\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+61            android:name="androidx.startup.InitializationProvider"
+61-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\e397624de525beb6947e41b51d2f7237\workspace\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:25:13-67
+62            android:authorities="com.cleanaudiotrimmer.app.androidx-startup"
+62-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\e397624de525beb6947e41b51d2f7237\workspace\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:26:13-68
+63            android:exported="false" >
+63-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\e397624de525beb6947e41b51d2f7237\workspace\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:27:13-37
+64            <meta-data
+64-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\e397624de525beb6947e41b51d2f7237\workspace\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+65                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+65-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\e397624de525beb6947e41b51d2f7237\workspace\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:30:17-75
+66                android:value="androidx.startup" />
+66-->[androidx.emoji2:emoji2:1.3.0] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\e397624de525beb6947e41b51d2f7237\workspace\transformed\jetified-emoji2-1.3.0\AndroidManifest.xml:31:17-49
+67            <meta-data
+67-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\f7f8f4e6b8807b1652872c1b24a46440\workspace\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:29:13-31:52
+68                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+68-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\f7f8f4e6b8807b1652872c1b24a46440\workspace\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:30:17-78
+69                android:value="androidx.startup" />
+69-->[androidx.lifecycle:lifecycle-process:2.6.2] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\f7f8f4e6b8807b1652872c1b24a46440\workspace\transformed\jetified-lifecycle-process-2.6.2\AndroidManifest.xml:31:17-49
+70            <meta-data
+70-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+71                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+71-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+72                android:value="androidx.startup" />
+72-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+73        </provider>
+74
+75        <receiver
+75-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+76            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+76-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+77            android:directBootAware="false"
+77-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+78            android:enabled="true"
+78-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+79            android:exported="true"
+79-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+80            android:permission="android.permission.DUMP" >
+80-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+81            <intent-filter>
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+82                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+83            </intent-filter>
+84            <intent-filter>
+84-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+85                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+85-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+85-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+86            </intent-filter>
+87            <intent-filter>
+87-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+88                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+88-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+88-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+89            </intent-filter>
+90            <intent-filter>
+90-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+91                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+91-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\ezsha\.gradle\caches\9.3.1\transforms\1f8f2fdfa3dd62342a056b92a4716a9a\workspace\transformed\jetified-profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+92            </intent-filter>
+93        </receiver>
+94    </application>
+95
+96</manifest>
